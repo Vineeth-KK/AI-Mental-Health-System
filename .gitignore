@@ -1,0 +1,22 @@
+# .gitignore
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+venv/
+.idea/
+*.egg-info/
+
+# Environment variables
+.env
+
+# Logs
+logs/
+*.log
+
+# Chroma DB storage
+chroma_db/
+
+# SQLite fallback (if any)
+*.sqlite
