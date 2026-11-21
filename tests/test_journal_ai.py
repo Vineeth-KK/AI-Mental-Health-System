@@ -14,12 +14,18 @@ from models.journal import JournalEntry
 from agents.journal_agent import analyze_journal_entry, detect_advice_opt_out
 
 
+from config import Config
+
+
+class TestConfig(Config):
+    TESTING = True
+    WTF_CSRF_ENABLED = False
+    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+
+
 @pytest.fixture
 def app():
-    app = create_app()
-    app.config["TESTING"] = True
-    app.config["WTF_CSRF_ENABLED"] = False
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+    app = create_app(TestConfig)
     with app.app_context():
         db.create_all()
         yield app
