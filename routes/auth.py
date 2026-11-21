@@ -61,6 +61,15 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
+        # If demo credentials submitted on a fresh database, auto-seed the demo account
+        if not user and form.email.data in ["demo@example.com", "counselor@careai.com", "admin@careai.com"]:
+            try:
+                from seed_users import seed_default_accounts
+                seed_default_accounts()
+                user = User.query.filter_by(email=form.email.data).first()
+            except Exception:
+                pass
+
         if user and user.check_password(form.password.data):
             login_user(user)
             flash("Logged in successfully.", "success")

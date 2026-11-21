@@ -58,3 +58,20 @@ def run_additive_migrations(app):
 
             conn.commit()
             logger.info("Additive database migrations verified successfully.")
+
+        # Auto-seed default demo accounts on empty database in production/dev (e.g. Render fresh deploy)
+        if not app.config.get("TESTING"):
+            try:
+                from models.user import User
+                if User.query.first() is None:
+                    demo_user = User(username="DemoUser", email="demo@example.com", role="user")
+                    demo_user.set_password("password123")
+                    counselor_user = User(username="CounselorSarah", email="counselor@careai.com", role="counselor")
+                    counselor_user.set_password("password123")
+                    admin_user = User(username="AdminCareAI", email="admin@careai.com", role="admin", is_admin=True)
+                    admin_user.set_password("password123")
+                    db.session.add_all([demo_user, counselor_user, admin_user])
+                    db.session.commit()
+                    logger.info("Automatically seeded default demo accounts for fresh database.")
+            except Exception as seed_err:
+                logger.warning(f"Initial user auto-seeding skipped: {seed_err}")
