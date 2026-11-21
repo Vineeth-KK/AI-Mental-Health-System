@@ -277,7 +277,7 @@ chatContainer.scrollTop = chatContainer.scrollHeight;
 
 // Clear conversation view
 document.getElementById("clearChatBtn").addEventListener("click", function() {
-  fetch("{{ url_for('chat.clear_history') }}", {
+  fetch("/api/chat/history", {
     method: "DELETE",
     headers: {
       "X-CSRFToken": getCsrfToken()
