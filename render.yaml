@@ -3,7 +3,7 @@ services:
     name: careai-mental-health-system
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --bind 0.0.0.0:$PORT wsgi:app --workers 2 --timeout 120
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 2 --timeout 120 wsgi:app
     healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION

@@ -17,22 +17,26 @@ CHROMA_DIR = os.path.join(BASE_DIR, "instance", "chroma_db")
 class RAGService:
     def __init__(self, chroma_path: str = CHROMA_DIR):
         self.chroma_path = chroma_path
-        os.makedirs(self.chroma_path, exist_ok=True)
-        self.client = chromadb.PersistentClient(path=self.chroma_path)
         self.collection_name = "mental_health_knowledge"
+        self.client = None
         self._collection = None
         self._initialized = False
-        self._init_collection()
+        # Lazy initialization: do not load heavy ChromaDB/embedding models into RAM at startup
 
     def _init_collection(self):
+        if self._initialized:
+            return
         try:
+            os.makedirs(self.chroma_path, exist_ok=True)
+            if self.client is None:
+                self.client = chromadb.PersistentClient(path=self.chroma_path)
             self._collection = self.client.get_or_create_collection(
                 name=self.collection_name,
                 metadata={"description": "Evidence-based mental health educational resources"}
             )
             # If collection is empty, index documents
             if self._collection.count() == 0:
-                self.index_knowledge_base()
+                self._do_index_knowledge_base()
             self._initialized = True
         except Exception as e:
             logger.warning(f"Error initializing ChromaDB collection: {e}. Fallback enabled.")
@@ -61,11 +65,10 @@ class RAGService:
                     chunks.append(" ".join(current_chunk))
         return chunks
 
-    def index_knowledge_base(self) -> int:
-        """Read knowledge_base/*.txt files and index them into ChromaDB."""
+    def _do_index_knowledge_base(self) -> int:
+        """Internal worker to index documents into an active collection."""
         if not self._collection:
             return 0
-        
         doc_files = glob.glob(os.path.join(KNOWLEDGE_BASE_DIR, "*.txt"))
         all_ids = []
         all_texts = []
@@ -102,8 +105,17 @@ class RAGService:
             logger.info(f"Successfully indexed {len(all_texts)} chunks into ChromaDB.")
         return len(all_texts)
 
+    def index_knowledge_base(self) -> int:
+        """Read knowledge_base/*.txt files and index them into ChromaDB."""
+        if not self._initialized:
+            self._init_collection()
+        return self._do_index_knowledge_base()
+
     def query(self, query_text: str, n_results: int = 3) -> List[Dict[str, Any]]:
         """Query ChromaDB for relevant educational resources."""
+        if not self._initialized:
+            self._init_collection()
+
         if not self._initialized or not self._collection or self._collection.count() == 0:
             # Fallback keyword matching across knowledge_base directory
             return self._fallback_query(query_text, n_results)
