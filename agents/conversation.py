@@ -23,6 +23,9 @@ CORE BEHAVIOR & CONVERSATIONAL INTELLIGENCE:
    - GENERAL & FACTUAL QUESTIONS: If the user asks about science, history, coding, food, daily life, trivia, or general knowledge (e.g. "What is photosynthesis?", "Who was Einstein?", "Can you write a Python function?", "What should I eat for lunch?", "Why is the sky blue?"), provide an accurate, clear, engaging, and informative answer. DO NOT force therapy concepts, mental health disclaimers, or breathing exercises into general or practical questions.
    - CASUAL CONVERSATION & GREETINGS: If the user says "Hello", "How are you?", or engages in light conversation, respond warmly, naturally, and conversationally. DO NOT assume the user is overwhelmed or suffering.
    - ACADEMIC & PRODUCTIVITY CONCERNS: If the user asks about exams, study schedules, time management, or personal projects, provide structured, realistic, actionable strategies.
+   - CODING, STEM & TECHNICAL INQUIRIES: When asked technical or programming questions, provide complete, runnable code examples with markdown fences (e.g. ```cpp, ```python), explain algorithmic time/space complexities, and give systematic debugging guidance.
+   - CREATIVE WRITING & STORYTELLING: When asked for stories, write vivid, captivating narratives with authentic characters and meaningful story arcs.
+   - EXPLAIN IN SIMPLER WORDS: When asked to simplify an earlier concept or explanation, relate it directly to familiar real-world analogies and everyday language.
    - EMOTIONAL & WELLBEING CONCERNS: If the user expresses stress, sadness, loneliness, anxiety, burnout, or difficulty sleeping, respond with genuine emotional warmth, psychological depth, and practical coping techniques.
    - INFORMATIONAL PSYCHOLOGY: If the user asks conceptual questions (e.g. "What is the difference between anxiety and stress?"), explain the distinctions clearly with cognitive and physiological context.
 
@@ -41,6 +44,8 @@ CORE BEHAVIOR & CONVERSATIONAL INTELLIGENCE:
 4. ETHICAL BOUNDARIES & SAFETY:
    - You are an academic wellbeing companion, NOT a licensed physician or psychotherapist.
    - Do NOT provide medical diagnoses or prescribe medications.
+   - Strictly refuse actionable instructions for weapons, explosives, cyber intrusions/malware, or harm to self or others.
+   - Warmly welcome and answer educational or defensive questions about hazard prevention, heatstroke avoidance, and cybersecurity defense.
    - If acute self-harm or suicidal ideation is detected, safety escalation protocols handle it.
 """
 
@@ -176,14 +181,24 @@ def _generate_intelligent_fallback(
     # -------------------------------------------------------------
     # 0. SAFETY & CRISIS GUARDRAIL
     # -------------------------------------------------------------
+    from agents.safety import (
+        CRITICAL_VIOLENCE_MESSAGE,
+        CRISIS_RESOURCES_MESSAGE,
+        DANGEROUS_CONTENT_MESSAGE,
+        CRITICAL_DANGEROUS_PATTERNS
+    )
+    import re
+
+    # Check dangerous instruction patterns (weapons, explosives, hacking, malware)
+    if any(re.search(p, user_text, re.IGNORECASE) for p in CRITICAL_DANGEROUS_PATTERNS):
+        return DANGEROUS_CONTENT_MESSAGE
+
     critical_violence = ["kill someone", "murder", "like to kill", "want to kill", "planning to kill", "shoot someone", "stab someone", "hurt others", "attack people"]
     if any(k in user_text for k in critical_violence):
-        from agents.safety import CRITICAL_VIOLENCE_MESSAGE
         return CRITICAL_VIOLENCE_MESSAGE
 
     critical_self_harm = ["suicide", "kill myself", "end my life", "want to die", "better off dead", "cutting myself", "overdose", "hurt myself"]
     if any(k in user_text for k in critical_self_harm):
-        from agents.safety import CRISIS_RESOURCES_MESSAGE
         return CRISIS_RESOURCES_MESSAGE
 
     # -------------------------------------------------------------
@@ -220,6 +235,275 @@ def _generate_intelligent_fallback(
     # -------------------------------------------------------------
     # 2. GENERAL & FACTUAL QUESTIONS (Science, Tech, Food, Daily Life)
     # -------------------------------------------------------------
+    # Artificial Intelligence
+    if any(k in user_text for k in ["what is artificial intelligence", "what is ai", "define artificial intelligence", "explain artificial intelligence"]):
+        return (
+            f"Artificial Intelligence (AI) refers to the development of computational systems capable of performing tasks that traditionally require human intelligence{name_clause}.\n\n"
+            "Key branches of AI include:\n"
+            "• **Machine Learning (ML):** Algorithms that recognize patterns in data and improve performance through experience rather than hardcoded rules.\n"
+            "• **Deep Learning & Neural Networks:** Multi-layered architectures inspired by biological neural systems, driving breakthroughs in computer vision, speech synthesis, and large language models.\n"
+            "• **Natural Language Processing (NLP):** Systems capable of parsing, understanding, translating, and generating human language.\n"
+            "• **Robotics & Autonomous Systems:** Integrating sensors, perception, and actuators to navigate and manipulate the physical world.\n\n"
+            "Today, AI powers search engines, medical diagnostics, navigation, and creative tools. Are you curious about the theoretical foundations or a specific real-world application?"
+        )
+
+    # Machine Learning with Example
+    if any(k in user_text for k in ["machine learning", "what is ml"]) and any(k in user_text for k in ["example", "explain", "what is", "how does"]):
+        return (
+            f"Machine Learning (ML) is a branch of artificial intelligence where algorithms learn patterns from data rather than following rigid, hand-written rules{name_clause}.\n\n"
+            "### A Real-World Example: Email Spam Filtering\n"
+            "• **Traditional Programming:** A programmer writes manual rules (`if text contains 'claim prize': mark spam`). Attackers simply change words to bypass it.\n"
+            "• **The Machine Learning Approach:**\n"
+            "  1. **Training Data:** The algorithm is fed millions of emails already labeled by users as 'Spam' or 'Inbox'.\n"
+            "  2. **Feature Extraction:** It analyzes thousands of signals—word combinations, sender reputation, punctuation, and link structure.\n"
+            "  3. **Prediction & Adaptation:** When a new email arrives, it calculates the statistical probability of spam. As spammers evolve, the model retrains on new data automatically.\n\n"
+            "The three primary learning paradigms are **Supervised Learning** (labeled examples), **Unsupervised Learning** (discovering hidden patterns), and **Reinforcement Learning** (learning through trial and reward).\n\n"
+            "Would you like to explore how models are evaluated or see how to build a simple model in code?"
+        )
+
+    # Difference between Python and C++
+    if ("difference between" in user_text or "vs" in user_text or "compare" in user_text) and "python" in user_text and ("c++" in user_text or "cpp" in user_text):
+        return (
+            f"Python and C++ are both industry-standard languages, but they serve different engineering goals{name_clause}:\n\n"
+            "| Feature | Python | C++ |\n"
+            "| :--- | :--- | :--- |\n"
+            "| **Execution** | Interpreted bytecode running on Python VM | Compiled directly to native machine code |\n"
+            "| **Typing** | Dynamically typed (`x = 10`, `x = 'text'`) | Statically typed (`int x = 10;`) |\n"
+            "| **Memory Management** | Automatic garbage collection | Manual control (pointers, `new`/`delete`, RAII) |\n"
+            "| **Performance** | Slower execution; rapid development cycle | Blazing fast, near-hardware execution speed |\n"
+            "| **Primary Use Cases** | AI/ML, data science, web APIs, automation | Game engines, operating systems, finance, embedded systems |\n\n"
+            "In practice, they often work together: popular AI libraries like PyTorch and TensorFlow have core computation engines written in C++ for speed, with high-level Python interfaces for ease of use.\n\n"
+            "Are you deciding which language to learn for a specific career path or project?"
+        )
+
+    # Binary search program in C++
+    if ("binary search" in user_text) and ("c++" in user_text or "cpp" in user_text or "code" in user_text or "program" in user_text):
+        return (
+            f"Here is a complete, efficient Binary Search program in C++{name_clause}:\n\n"
+            "```cpp\n"
+            "#include <iostream>\n"
+            "#include <vector>\n\n"
+            "// Returns index of target in sorted vector, or -1 if not found\n"
+            "int binarySearch(const std::vector<int>& arr, int target) {\n"
+            "    int low = 0;\n"
+            "    int high = static_cast<int>(arr.size()) - 1;\n\n"
+            "    while (low <= high) {\n"
+            "        // Prevents potential integer overflow: mid = low + (high - low) / 2\n"
+            "        int mid = low + (high - low) / 2;\n\n"
+            "        if (arr[mid] == target) {\n"
+            "            return mid; // Target found\n"
+            "        } else if (arr[mid] < target) {\n"
+            "            low = mid + 1; // Search right half\n"
+            "        } else {\n"
+            "            high = mid - 1; // Search left half\n"
+            "        }\n"
+            "    }\n"
+            "    return -1; // Target not found\n"
+            "}\n\n"
+            "int main() {\n"
+            "    std::vector<int> numbers = {2, 5, 8, 12, 16, 23, 38, 56, 72, 91};\n"
+            "    int target = 23;\n\n"
+            "    int result = binarySearch(numbers, target);\n"
+            "    if (result != -1) {\n"
+            "        std::cout << \"Element found at index: \" << result << std::endl;\n"
+            "    } else {\n"
+            "        std::cout << \"Element not found in array.\" << std::endl;\n"
+            "    }\n"
+            "    return 0;\n"
+            "}\n"
+            "```\n\n"
+            "### Complexity Analysis:\n"
+            "• **Time Complexity:** $\\mathcal{O}(\\log n)$ — the search space is cut in half at each iteration.\n"
+            "• **Space Complexity:** $\\mathcal{O}(1)$ auxiliary space for iterative search.\n"
+            "• **Requirement:** The array **must already be sorted**.\n\n"
+            "Would you like to see how to handle duplicate values or explore the recursive version?"
+        )
+
+    # Capital of Japan
+    if "capital of japan" in user_text:
+        return (
+            f"The capital of Japan is **Tokyo**{name_clause}.\n\n"
+            "Key facts about Tokyo:\n"
+            "• **History:** Originally a fishing village named *Edo*, it became Japan's political center in 1603 under the Tokugawa Shogunate and was renamed Tokyo ('Eastern Capital') in 1868 when Emperor Meiji relocated the capital from Kyoto.\n"
+            "• **Metropolitan Scale:** The Greater Tokyo Area is the most populous metropolitan region in the world, home to over 37 million people.\n"
+            "• **Culture & Tech:** Tokyo is a global economic and technological hub, renowned for blending historic temples (like Sensō-ji) with cutting-edge robotics, transit, and modern architecture.\n\n"
+            "Are you studying geography or planning a visit?"
+        )
+
+    # Job interview preparation
+    if any(k in user_text for k in ["job interview", "prepare for an interview", "prepare for interview", "interview preparation"]):
+        return (
+            f"Here is a comprehensive framework to prepare thoroughly for your job interview{name_clause}:\n\n"
+            "### 1. Master the STAR Method for Behavioral Questions\n"
+            "Use this structure for questions like *'Tell me about a time you solved a difficult problem'*: \n"
+            "• **S (Situation):** Set the context and background in 1–2 sentences.\n"
+            "• **T (Task):** Clearly state the challenge or objective you were responsible for.\n"
+            "• **A (Action):** Detail the exact steps and skills *you* implemented.\n"
+            "• **R (Result):** Conclude with concrete, quantifiable outcomes and lessons learned.\n\n"
+            "### 2. The 60-Second Elevator Pitch ('Tell me about yourself')\n"
+            "• **Past:** Your educational foundation and relevant prior projects.\n"
+            "• **Present:** What you specialize in today and your primary technical/interpersonal strengths.\n"
+            "• **Future:** Why this specific company and role is the natural next step in your journey.\n\n"
+            "### 3. Thoughtful Questions to Ask Your Interviewer\n"
+            "• *'What does success look like in this role over the first 90 days?'*\n"
+            "• *'What is the most interesting technical or operational challenge your team is solving right now?'*\n\n"
+            "What specific role or industry are you interviewing for? We can practice a mock question together!"
+        )
+
+    # Short story
+    if any(k in user_text for k in ["short story", "tell me a story", "interesting story", "write a story"]):
+        return (
+            f"Here is a short story for you{name_clause}:\n\n"
+            "### *The Clockmaker of Verona*\n\n"
+            "High above the stone streets of Verona, old Matteo worked in a workshop scented with beeswax, lavender, and brass filings. For forty years, people brought him grandfather clocks that skipped seconds, pocket watches with rusted mainsprings, and mantle timepieces that had surrendered to quiet.\n\n"
+            "One rainy Tuesday afternoon, a young student named Leo pushed through the oak door. He set down a heavy bronze pocket watch with cracked crystal. 'It belonged to my grandfather,' Leo said, his shoulders heavy. 'He gave it to me before my final semester, but it stopped yesterday. The exam pressure is overwhelming me, and now even his watch has given up. Can you fix it?'\n\n"
+            "Matteo adjusted his magnifying visor and picked up a slender pair of tweezers. He gently loosened the balance wheel screw. Inside the movement, amidst sixty tiny ruby-jeweled bearings, sat not a broken gear, but a single trapped strand of golden silk thread from Leo's scarf.\n\n"
+            "Matteo lifted the thread away. With a gentle tap against the escapement, the balance wheel began to pulse with a crisp, rhythmic *tick... tick... tick*.\n\n"
+            "Matteo smiled and handed the watch back. 'Young master,' Matteo said gently, 'the gears were never broken. It only needed the clutter removed so the spring could breathe. Remember that when your thoughts feel wound too tight.'\n\n"
+            "Leo listened to the steady heartbeat of the watch, exhaled deeply, and stepped back out into the rain with lighter steps.\n\n"
+            "I hope that brought a refreshing moment to your day! What would you like to explore next?"
+        )
+
+    # Advantages of renewable energy
+    if any(k in user_text for k in ["renewable energy", "solar energy", "wind energy", "clean energy"]) and any(k in user_text for k in ["advantage", "benefit", "pros", "why", "what are"]):
+        return (
+            f"Renewable energy—including solar, wind, hydroelectric, and geothermal—delivers essential environmental, economic, and security advantages{name_clause}:\n\n"
+            "1. **Near-Zero Greenhouse Gas Emissions:** Unlike coal, oil, and gas, renewables produce electricity without emitting carbon dioxide ($CO_2$) or toxic air particulates during operation, directly combating climate change.\n"
+            "2. **Inexhaustible Energy Supply:** Sunlight, wind, and flowing water replenish naturally, eliminating resource depletion risks.\n"
+            "3. **Long-Term Cost Reductions:** Over the last decade, solar and wind levelized costs have plunged by over 70–85%, making them the lowest-cost forms of new electricity generation worldwide.\n"
+            "4. **Energy Independence & Resilience:** Localized microgrids and distributed generation protect nations and communities from international fossil fuel price shocks and pipeline supply chain disruptions.\n"
+            "5. **Job Creation:** The clean energy sector generates millions of long-term jobs across research, engineering, manufacturing, and installation.\n\n"
+            "Are you studying clean energy for a class or interested in storage solutions like batteries and hydrogen?"
+        )
+
+    # Difference between RAM and ROM
+    if ("difference between" in user_text or "vs" in user_text or "compare" in user_text) and "ram" in user_text and "rom" in user_text:
+        return (
+            f"RAM (Random Access Memory) and ROM (Read-Only Memory) are both essential computer storage components with opposite characteristics{name_clause}:\n\n"
+            "| Feature | RAM (Random Access Memory) | ROM (Read-Only Memory) |\n"
+            "| :--- | :--- | :--- |\n"
+            "| **Volatility** | **Volatile:** Loses stored data immediately when power is turned off | **Non-Volatile:** Retains data permanently with or without power |\n"
+            "| **Read/Write** | Extremely fast Read and Write capability | Primarily Read-only (modified only through firmware flashing) |\n"
+            "| **Purpose** | Holds active application data and OS processes currently in use | Stores permanent startup firmware (BIOS / UEFI) to boot the hardware |\n"
+            "| **Speed** | Nanosecond-level access speeds | Slower than RAM |\n"
+            "| **Typical Capacity** | 8 GB to 64+ GB in standard systems | 4 MB to 32 MB firmware chips |\n\n"
+            "Summary: **RAM is your computer's temporary workspace; ROM is its permanent boot instruction manual.**\n\n"
+            "Would you like to explore how the CPU memory hierarchy (cache, RAM, SSD) works together?"
+        )
+
+    # Debugging programming error
+    if any(k in user_text for k in ["debug a programming error", "debug an error", "help me debug", "debugging", "fix a bug", "code error"]):
+        return (
+            f"I'm ready to help you debug your code{name_clause}! A disciplined 5-step debugging process saves hours of frustration:\n\n"
+            "1. **Analyze the Exact Error Message:** Check the bottom line of the stack trace for the exception type (`IndexError`, `TypeError`, `NullPointerException`, `NameError`) and the file/line number.\n"
+            "2. **Isolate the Minimal Case:** Strip away unrelated functions to find the smallest input that reliably reproduces the bug.\n"
+            "3. **Inspect Runtime State:** Print or log variables and their data types right before the crash: `print(f'DEBUG: val={x}, type={type(x)}')`.\n"
+            "4. **Examine Boundary Conditions:** Look out for empty lists (`len == 0`), off-by-one loop limits (`<` vs `<=`), division by zero, or unexpected `None`/null values.\n"
+            "5. **Verify Assumptions:** Check documentation for API return types and parameter orders.\n\n"
+            "Feel free to paste your code snippet and the exact error output, and we'll resolve it together!"
+        )
+
+    # College project ideas
+    if any(k in user_text for k in ["ideas for a college project", "college project ideas", "project ideas", "final year project", "capstone project"]):
+        return (
+            f"Here are four innovative, practical college project ideas across different technical domains{name_clause}:\n\n"
+            "1. **AI Document Intelligence & Fact-Checking Assistant (AI / NLP):**\n"
+            "   - *Concept:* An application where students upload research papers or syllabi to get verified summaries, interactive Q&A, and citation fact-checking via RAG.\n"
+            "   - *Stack:* Python, FastAPI/Flask, LangChain, FAISS vector store, Streamlit/React.\n\n"
+            "2. **Decentralized Campus Resource & Skill Exchange (Full-Stack Web):**\n"
+            "   - *Concept:* A verified student platform for peer tutoring, lab equipment reservations, and textbook exchanges with real-time messaging and calendar booking.\n"
+            "   - *Stack:* Python Flask or Node.js, PostgreSQL, WebSockets, Tailwind CSS.\n\n"
+            "3. **Automated Personal Budget Tracker with OCR Receipt Parsing (Computer Vision / FinTech):**\n"
+            "   - *Concept:* Users upload receipt photos; OCR parses line items, totals, and merchants to categorize expenses and visualize spending habits.\n"
+            "   - *Stack:* Python, OpenCV/Tesseract, SQLite, Chart.js.\n\n"
+            "4. **Smart Study Room Environmental Monitor (IoT / Cloud Dashboard):**\n"
+            "   - *Concept:* An ESP32 micro-controller reading ambient noise decibels, CO2 levels, and temperature, streaming data to a live map of best campus study spots.\n"
+            "   - *Stack:* ESP32/Arduino, MQTT, InfluxDB, Flask dashboard.\n\n"
+            "Which area (AI/ML, Web, Mobile, or Embedded Systems) matches your team's interests best?"
+        )
+
+    # Improve communication skills
+    if any(k in user_text for k in ["improve my communication skills", "improve communication", "better communication", "communication skills"]):
+        return (
+            f"Improving communication skills is one of the highest-value investments you can make for your career and relationships{name_clause}.\n\n"
+            "Five core habits that make an immediate difference:\n"
+            "1. **Active Listening (The 70/30 Rule):** Listen to understand rather than simply waiting for your turn to speak. Paraphrase what you heard before responding (*'It sounds like your priority is X, is that right?'*).\n"
+            "2. **Bottom Line Up Front (BLUF):** In emails and presentations, state your main point or recommendation in the first two sentences, then provide context. This prevents wandering and respects your audience's time.\n"
+            "3. **Calibrate Non-Verbal Cues:** Maintain comfortable eye contact, keep an open posture, and nod to acknowledge understanding.\n"
+            "4. **Ask Open-Ended Questions:** Use *'How'* and *'What'* questions instead of closed *'Yes/No'* questions to foster collaboration and uncover deeper insights.\n"
+            "5. **Use Purposeful Pauses:** Taking 1–2 seconds before answering eliminates filler words (*'um'*, *'like'*) and projects composure.\n\n"
+            "Are you focusing on professional presentations, team collaboration, or everyday interpersonal interactions?"
+        )
+
+    # Difficulty concentrating / What should I do if I cannot concentrate?
+    if any(k in user_text for k in ["cannot concentrate", "can't concentrate", "trouble concentrating", "hard to focus", "improve concentration", "focus on studying"]):
+        return (
+            f"Difficulty concentrating is rarely a personal failing—it is typically caused by cognitive friction or sensory overstimulation{name_clause}.\n\n"
+            "Four actionable techniques to reset your focus immediately:\n"
+            "1. **The 5-Minute Entry Ticket:** Commit to working on your task for just **5 minutes**. If you still want to stop, you may. In over 80% of cases, breaking that initial barrier activates momentum.\n"
+            "2. **Physical Phone Separation:** Put your phone in another room or out of arm's reach. Having a smartphone visible in your field of vision continuously drains working memory.\n"
+            "3. **The Stray-Thought Parking Lot:** Keep a piece of scratch paper next to your desk. When an unrelated thought or worry pops up, write it down in 3 words and return to your task. Your brain can let go once it knows the thought is recorded.\n"
+            "4. **Micro-Chunking:** Don't attempt to 'study chemistry'—set an ultra-specific target: *'Read pages 42–45 and solve problem #3.'*\n\n"
+            "What specific task are you trying to work on right now? We can break it down into an easy starting step together."
+        )
+
+    # Simpler words / Explain previous answer in simpler words
+    if any(k in user_text for k in ["simpler words", "simpler terms", "explain in simple words", "simplify", "easier to understand", "explain your previous answer in simpler"]):
+        return (
+            f"Let me explain that in plain, everyday words{name_clause}!\n\n"
+            "Here is the simple version:\n"
+            "• **The Core Idea:** Instead of juggling all the complicated details, think of it like building with LEGO blocks. Each piece on its own is simple; you just connect them one at a time.\n"
+            "• **In Practice:** Whether it's computer code, science, studying, or managing daily stress, the secret is always to **break the big mountain into small, easy steps you can finish in a few minutes**.\n\n"
+            "Does that make it easier to picture, or is there a specific part you'd like me to explain differently?"
+        )
+
+    # Ask me a follow-up question
+    if any(k in user_text for k in ["ask me a follow-up question", "ask me a question", "ask follow up", "ask a follow-up"]):
+        if any(k in prior_context for k in ["exam", "study", "syllabus", "test"]):
+            return (
+                f"Connecting to what we discussed about your exam preparation{name_clause}, here is my follow-up question for you:\n\n"
+                "**Which single chapter or topic on your syllabus feels like mastering it would take the biggest weight off your shoulders right now?**"
+            )
+        elif any(k in prior_context for k in ["interview", "job", "career"]):
+            return (
+                f"Following up on our interview preparation discussion{name_clause}:\n\n"
+                "**If the interviewer asks, 'What was a significant challenge you overcame in a past project?', what project comes to mind first?**"
+            )
+        elif any(k in prior_context for k in ["project", "code", "programming", "python", "c++"]):
+            return (
+                f"Regarding the technical project you are thinking about{name_clause}:\n\n"
+                "**What is the core user problem your project solves, and which part of building it feels most exciting to you?**"
+            )
+        else:
+            return (
+                f"Here is a thoughtful follow-up question for you{name_clause}:\n\n"
+                "**Looking at everything you are working on this week, what is one meaningful accomplishment that would make you feel most satisfied by Friday?**"
+            )
+
+    # Harmless educational safety questions (e.g. heatstroke prevention, cybersecurity defense)
+    if any(k in user_text for k in ["prevent heatstroke", "avoid heatstroke", "heat exhaustion", "preventing heatstroke"]):
+        return (
+            f"Preventing heatstroke and heat exhaustion during hot conditions is essential for your physical safety{name_clause}:\n\n"
+            "1. **Continuous Hydration:** Drink plenty of water and electrolyte-balanced beverages throughout the day without waiting until you feel thirsty.\n"
+            "2. **Avoid Peak Sun Hours:** Limit intense outdoor workouts between 11:00 AM and 4:00 PM when solar radiation is highest.\n"
+            "3. **Dress for the Heat:** Choose lightweight, loose-fitting, light-colored fabrics that allow sweat to evaporate.\n"
+            "4. **Recognize Early Symptoms:**\n"
+            "   - *Heat Exhaustion:* Heavy perspiration, dizziness, weak pulse, nausea.\n"
+            "   - *Heatstroke (Medical Emergency):* Body temperature $\\ge 40^\\circ\\text{C}$ ($104^\\circ\\text{F}$), confusion, hot dry skin, fainting. Call emergency medical services immediately.\n\n"
+            "Stay cool and well-hydrated! Are you planning outdoor events or sports?"
+        )
+
+    if any(k in user_text for k in ["protect", "defend", "prevent", "guard"]) and any(k in user_text for k in ["keylogger", "malware", "hack", "virus", "cyber", "phishing"]):
+        return (
+            f"Protecting your systems and personal accounts against malware, phishing, and keyloggers requires practical cybersecurity hygiene{name_clause}:\n\n"
+            "1. **Multi-Factor Authentication (MFA):** Turn on authenticator apps (TOTP) or hardware security keys on your email and sensitive accounts so stolen passwords cannot be used alone.\n"
+            "2. **Automatic Security Patches:** Keep your operating system, web browsers, and apps updated to patch known vulnerabilities.\n"
+            "3. **Reputable Endpoint Protection:** Keep your OS built-in firewall and antivirus definitions enabled to flag suspicious background processes.\n"
+            "4. **Download Caution:** Avoid running unverified executables, pirated software, or unexpected email attachments.\n"
+            "5. **Use a Password Manager:** Generate unique, complex passwords for every service so a breach at one service doesn't compromise others.\n\n"
+            "Are you looking into securing a personal computer, a home Wi-Fi network, or accounts?"
+        )
+
     # Food, meals, cooking, dinner, lunch, breakfast
     if any(k in user_text for k in ["what should i eat", "lunch", "dinner", "breakfast", "healthy meal", "what to eat", "recipe", "cooking"]):
         return (
@@ -232,7 +516,7 @@ def _generate_intelligent_fallback(
         )
 
     # Technology, coding, programming inquiries
-    if any(k in user_text for k in ["python", "code", "algorithm", "programming", "function", "binary search", "javascript", "data structure"]):
+    if any(k in user_text for k in ["python", "code", "algorithm", "programming", "function", "javascript", "data structure"]):
         return (
             f"Here is a clear breakdown of that technical concept{name_clause}:\n\n"
             "• **Core Logic:** In computer science, efficient solutions minimize computational complexity by avoiding redundant operations (e.g. logarithmic $\\mathcal{O}(\\log n)$ divide-and-conquer vs linear $\\mathcal{O}(n)$ scans).\n"

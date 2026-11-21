@@ -30,7 +30,16 @@ CRITICAL_VIOLENCE_PATTERNS = [
     r"\b(hurt (someone|people|others)|harm (someone|people|others)|attack (someone|people))\b"
 ]
 
-CRITICAL_SAFETY_PATTERNS = CRITICAL_SELF_HARM_PATTERNS + CRITICAL_VIOLENCE_PATTERNS
+# High-risk trigger phrases for dangerous weapon/explosive creation, illegal synthesis, cyber intrusions, or malware creation
+CRITICAL_DANGEROUS_PATTERNS = [
+    r"\b(how to (make|build|create|synthesize|assemble|manufacture)|instructions (for|to) (make|build|create))\s+(a\s+)?(pipe\s+bomb|bomb|explosive|dirty bomb|molotov( cocktail)?|biological weapon|nerve agent|chemical weapon|ied|meth|methamphetamine|fentanyl)\b",
+    r"\b(build a bomb|make a bomb|synthesize (methamphetamine|fentanyl|sarin|ricin))\b",
+    r"\b(how to (hack|break into|spy on|compromise))\s+(my\s+)?(roommate'?s?|friend'?s?|boss'?s?|someone'?s?|ex'?s?|wife'?s?|husband'?s?|their|another person'?s?|anyone'?s?)\s+(email|phone|account|password|social media|whatsapp|instagram|facebook|computer)\b",
+    r"\b(write|create|code|generate|build)\s+(a\s+)?(keylogger|ransomware|trojan|spyware|stealer|malware)\s*(script|tool|code|to steal|to hack)?\b",
+    r"\b(steal|crack|brute[- ]force)\s+(someone'?s?|their|people'?s?)\s+(passwords?|credentials?|credit cards?)\b"
+]
+
+CRITICAL_SAFETY_PATTERNS = CRITICAL_SELF_HARM_PATTERNS + CRITICAL_VIOLENCE_PATTERNS + CRITICAL_DANGEROUS_PATTERNS
 
 # Moderate concern indicators
 MODERATE_SAFETY_PATTERNS = [
@@ -64,6 +73,15 @@ If you are experiencing intense anger, violent impulses, or emotional overwhelm,
 
 Please reach out to a licensed counselor, crisis specialist, or emergency professional who can provide a safe space to de-escalate and process these feelings."""
 
+DANGEROUS_CONTENT_MESSAGE = """⚠️ **Safety Notice: Content Policy & Safe Usage**
+
+I cannot provide instructions, code, or actionable assistance for weapons creation, explosives, synthesizing harmful substances, or carrying out unauthorized cyber intrusions, account hacking, or malware development.
+
+If you are researching cybersecurity concepts, defense mechanisms, or safety protocols from an educational or defensive standpoint, I am happy to discuss:
+- Cybersecurity best practices, ethical security analysis, and defensive protection
+- Chemical safety principles and hazard prevention
+- Digital privacy, identity security, and multi-factor authentication"""
+
 def evaluate_text_safety(text: str) -> Tuple[bool, str, str]:
     """Evaluates text for urgent safety concerns.
     Returns: (is_urgent, risk_level, reason)
@@ -83,6 +101,12 @@ def evaluate_text_safety(text: str) -> Tuple[bool, str, str]:
         if match:
             return True, "critical", f"Critical self-harm or crisis indicator detected: '{match.group(0)}'"
 
+    # Check dangerous instruction patterns (weapons, explosives, hacking, malware)
+    for pattern in CRITICAL_DANGEROUS_PATTERNS:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            return True, "critical", f"Dangerous or unauthorized activity indicator detected: '{match.group(0)}'"
+
     # Check moderate concern patterns
     for pattern in MODERATE_SAFETY_PATTERNS:
         match = re.search(pattern, text, re.IGNORECASE)
@@ -99,9 +123,16 @@ def evaluate_safety(
     """Combines text safety assessment and numeric distress score threshold."""
     is_urgent, risk_level, reason = evaluate_text_safety(text or "")
 
-    # Determine which crisis resources message to show (violence vs self-harm)
+    # Determine which crisis resources/refusal message to show (dangerous vs violence vs self-harm)
+    is_dangerous = bool(text and any(re.search(p, text, re.IGNORECASE) for p in CRITICAL_DANGEROUS_PATTERNS))
     is_violence = bool(text and any(re.search(p, text, re.IGNORECASE) for p in CRITICAL_VIOLENCE_PATTERNS))
-    crisis_msg = CRITICAL_VIOLENCE_MESSAGE if is_violence else CRISIS_RESOURCES_MESSAGE
+
+    if is_dangerous:
+        crisis_msg = DANGEROUS_CONTENT_MESSAGE
+    elif is_violence:
+        crisis_msg = CRITICAL_VIOLENCE_MESSAGE
+    else:
+        crisis_msg = CRISIS_RESOURCES_MESSAGE
 
     # Score-based safety check: Critical distress score (>= 0.85) triggers safety intervention
     if distress_score is not None and distress_score >= 0.85:
