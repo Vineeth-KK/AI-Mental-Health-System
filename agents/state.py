@@ -22,3 +22,4 @@ class AgentState(TypedDict, total=False):
     response: Optional[str]
     priority_override: bool
     timestamp: str
+    ml_classification: Optional[Dict[str, Any]]  # Supportive ML signal (not clinical diagnosis)

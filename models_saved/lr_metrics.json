@@ -1,0 +1,53 @@
+{
+  "model": "LogisticRegression + TF-IDF",
+  "train_size": 34265,
+  "val_size": 7342,
+  "test_size": 7343,
+  "val_accuracy": 0.7889,
+  "val_f1_macro": 0.7731,
+  "val_f1_weighted": 0.7863,
+  "test_accuracy": 0.7918,
+  "test_f1_macro": 0.7741,
+  "test_f1_weighted": 0.789,
+  "test_precision_macro": 0.7676,
+  "test_recall_macro": 0.7859,
+  "per_class": {
+    "Normal": {
+      "precision": 0.8875305623471883,
+      "recall": 0.9331619537275064,
+      "f1-score": 0.9097744360902256,
+      "support": 2723.0
+    },
+    "Depression": {
+      "precision": 0.7631433314886552,
+      "recall": 0.644091546006539,
+      "f1-score": 0.6985815602836879,
+      "support": 2141.0
+    },
+    "Anxiety": {
+      "precision": 0.7139807897545357,
+      "recall": 0.83729662077597,
+      "f1-score": 0.7707373271889401,
+      "support": 799.0
+    },
+    "Suicidal": {
+      "precision": 0.7056451612903226,
+      "recall": 0.7291666666666666,
+      "f1-score": 0.7172131147540983,
+      "support": 1680.0
+    },
+    "accuracy": 0.7917744790957374,
+    "macro avg": {
+      "precision": 0.7675749612201754,
+      "recall": 0.7859291967941705,
+      "f1-score": 0.774076609579238,
+      "support": 7343.0
+    },
+    "weighted avg": {
+      "precision": 0.7907653705529376,
+      "recall": 0.7917744790957374,
+      "f1-score": 0.7890121295454049,
+      "support": 7343.0
+    }
+  }
+}

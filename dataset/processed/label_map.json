@@ -1,0 +1,6 @@
+{
+  "Normal": 0,
+  "Depression": 1,
+  "Anxiety": 2,
+  "Suicidal": 3
+}

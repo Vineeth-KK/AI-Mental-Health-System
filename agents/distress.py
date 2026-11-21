@@ -3,10 +3,32 @@
 Evaluates structured daily check-ins using a deterministic normalized formula (0.0 to 1.0)
 and classifies them into non-overlapping low, moderate, high, and critical categories.
 Keeps qualitative journal sentiment strictly separate from numerical distress scores.
+
+ML Integration: If a trained ML model is available, classify_text() is called as an
+additional supportive signal. It does NOT override deterministic safety rules.
 """
 
-from typing import Dict, Any, Tuple
+import logging
+from typing import Dict, Any, Tuple, Optional
 from agents.state import AgentState
+
+logger = logging.getLogger(__name__)
+
+# ML inference — optional, fully lazy to avoid import-time side effects
+# (sklearn/pyarrow cause Windows access violations when imported during pytest collection)
+_ML_LOADED = None  # None = not yet checked; True/False after first attempt
+
+
+def _get_ml_classify():
+    """Lazy import of ML module — only on first actual call, not at module load time."""
+    global _ML_LOADED
+    if _ML_LOADED is None:
+        try:
+            from ml.inference import classify_text as _ct, is_ml_available as _ma
+            _ML_LOADED = (_ct, _ma)
+        except ImportError:
+            _ML_LOADED = False
+    return _ML_LOADED if _ML_LOADED else None
 
 def calculate_distress_score(mood: float, anxiety: float, stress: float, isolation: float, sleep: float) -> Tuple[float, str, Dict[str, float]]:
     """Calculates deterministic normalized distress score between 0.0 and 1.0.
@@ -80,6 +102,28 @@ def analyze_journal_sentiment(text: str) -> Dict[str, Any]:
         "positive_markers": pos_matches
     }
 
+def _get_ml_classification(text: Optional[str]) -> Optional[Dict[str, Any]]:
+    """
+    Optionally run ML text classification as a supportive signal.
+    Returns None if ML is unavailable or text is empty.
+    This signal does NOT override deterministic safety rules.
+    """
+    if not text or not text.strip():
+        return None
+    ml_fns = _get_ml_classify()
+    if not ml_fns:
+        return None
+    try:
+        classify_text, is_ml_available = ml_fns
+        if is_ml_available():
+            result = classify_text(text)
+            if result.get("label") not in (None, "unknown"):
+                return result
+    except Exception as e:
+        logger.warning(f"ML classification failed (non-critical): {e}")
+    return None
+
+
 def distress_agent_node(state: AgentState) -> Dict[str, Any]:
     """LangGraph node function for Agent 3: Distress Analysis Agent."""
     checkin = state.get("current_checkin")
@@ -102,5 +146,21 @@ def distress_agent_node(state: AgentState) -> Dict[str, Any]:
     if journal_text:
         sentiment_data = analyze_journal_sentiment(journal_text)
         updates["journal_sentiment"] = sentiment_data
+
+        # ML classification as supportive signal (does NOT affect distress_score)
+        ml_result = _get_ml_classification(journal_text)
+        if ml_result:
+            updates["ml_classification"] = ml_result
+            logger.info(
+                f"ML classification: {ml_result['label']} "
+                f"(conf={ml_result['confidence']}, model={ml_result['model_used']})"
+            )
+
+    # Also run ML on check-in notes if present
+    if checkin and not journal_text:
+        checkin_notes = checkin.get("notes") or checkin.get("text") or ""
+        ml_result = _get_ml_classification(checkin_notes)
+        if ml_result:
+            updates["ml_classification"] = ml_result
 
     return updates
