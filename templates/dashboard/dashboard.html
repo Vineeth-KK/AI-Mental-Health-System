@@ -3,22 +3,35 @@
 
 {% block content %}
 <div class="row g-4">
-  <!-- Header / Greeting -->
-  <div class="col-12 d-flex flex-wrap justify-content-between align-items-center gap-3">
-    <div>
-      <h2 class="fw-bold mb-1">Welcome back, {{ current_user.username }} 👋</h2>
-      <p class="text-muted mb-0">Your confidential AI-powered mental wellbeing monitoring center</p>
-    </div>
-    <div class="d-flex gap-2">
-      <a href="{{ url_for('checkin.checkin_page') }}" class="btn btn-primary d-flex align-items-center gap-2">
-        <i class="bi bi-plus-circle"></i> Log Check‑In
-      </a>
-      <a href="{{ url_for('journal.journal_page') }}" class="btn btn-outline-light d-flex align-items-center gap-2">
-        <i class="bi bi-pencil-square"></i> Journal
-      </a>
-      <a href="{{ url_for('chat.chat_page') }}" class="btn btn-outline-info d-flex align-items-center gap-2">
-        <i class="bi bi-chat-heart"></i> AI Chat
-      </a>
+  <!-- Top Welcome Banner with SVG illustration -->
+  <div class="col-12">
+    <div class="card glass border-0 overflow-hidden position-relative p-0" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border-radius: 18px;">
+      <div class="row g-0 align-items-center">
+        <div class="col-lg-8 p-4 p-md-5">
+          <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-primary bg-opacity-20 border border-primary border-opacity-30 text-primary small fw-semibold mb-3">
+            <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true" style="width: 8px; height: 8px;"></span>
+            Six-Agent LangGraph System Active
+          </div>
+          <h1 class="display-6 fw-bold mb-2 text-white">Welcome back, {{ current_user.username }} 👋</h1>
+          <p class="text-secondary fs-6 mb-4" style="max-width: 650px;">
+            Your confidential mental wellbeing center tracking daily indicators, dynamic distress trajectories, and personalized RAG coping recommendations.
+          </p>
+          <div class="d-flex flex-wrap gap-2">
+            <a href="{{ url_for('checkin.checkin_page') }}" class="btn btn-primary d-inline-flex align-items-center gap-2 px-3 py-2 fw-semibold shadow-sm">
+              <i class="bi bi-plus-circle"></i> Log Daily Check‑In
+            </a>
+            <a href="{{ url_for('journal.journal_page') }}" class="btn btn-outline-light d-inline-flex align-items-center gap-2 px-3 py-2">
+              <i class="bi bi-pencil-square"></i> Reflect in Journal
+            </a>
+            <a href="{{ url_for('chat.chat_page') }}" class="btn btn-outline-info d-inline-flex align-items-center gap-2 px-3 py-2">
+              <i class="bi bi-chat-heart"></i> Talk with CareAI
+            </a>
+          </div>
+        </div>
+        <div class="col-lg-4 d-none d-lg-block text-center p-3">
+          <img src="{{ url_for('static', filename='img/dashboard-banner.svg') }}" alt="Dashboard Overview" class="img-fluid" style="max-height: 190px; filter: drop-shadow(0 10px 25px rgba(0,0,0,0.5));">
+        </div>
+      </div>
     </div>
   </div>
 
@@ -27,7 +40,9 @@
     <div class="card glass p-3 card-hover h-100">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <span class="text-muted small fw-semibold">CURRENT DISTRESS</span>
-        <i class="bi bi-activity text-primary fs-5"></i>
+        <div class="p-2 rounded bg-primary bg-opacity-20 text-primary">
+          <i class="bi bi-activity fs-5"></i>
+        </div>
       </div>
       <div class="d-flex align-items-baseline gap-2">
         <span class="display-6 fw-bold">
@@ -54,17 +69,19 @@
     <div class="card glass p-3 card-hover h-100">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <span class="text-muted small fw-semibold">TREND TRAJECTORY</span>
-        <i class="bi bi-graph-up-arrow text-info fs-5"></i>
+        <div class="p-2 rounded bg-info bg-opacity-20 text-info">
+          <i class="bi bi-graph-up-arrow fs-5"></i>
+        </div>
       </div>
       <div class="d-flex align-items-center gap-2">
         {% if trend_data.trend == 'improving' %}
-          <span class="fs-3">📉</span>
+          <span class="fs-4">📉</span>
           <span class="fw-bold text-success fs-5">Improving</span>
         {% elif trend_data.trend == 'worsening' %}
-          <span class="fs-3">📈</span>
+          <span class="fs-4">📈</span>
           <span class="fw-bold text-danger fs-5">Worsening</span>
         {% else %}
-          <span class="fs-3">➡️</span>
+          <span class="fs-4">➡️</span>
           <span class="fw-bold text-warning fs-5">Stable</span>
         {% endif %}
       </div>
@@ -78,7 +95,9 @@
     <div class="card glass p-3 card-hover h-100">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <span class="text-muted small fw-semibold">TOTAL CHECK-INS</span>
-        <i class="bi bi-calendar-check text-success fs-5"></i>
+        <div class="p-2 rounded bg-success bg-opacity-20 text-success">
+          <i class="bi bi-calendar-check fs-5"></i>
+        </div>
       </div>
       <div class="display-6 fw-bold text-light">
         {{ total_checkins }}
@@ -91,7 +110,9 @@
     <div class="card glass p-3 card-hover h-100">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <span class="text-muted small fw-semibold">JOURNAL ENTRIES</span>
-        <i class="bi bi-book text-warning fs-5"></i>
+        <div class="p-2 rounded bg-warning bg-opacity-20 text-warning">
+          <i class="bi bi-book fs-5"></i>
+        </div>
       </div>
       <div class="display-6 fw-bold text-light">
         {{ total_journals }}
@@ -103,18 +124,23 @@
   <!-- Safety Alerts Banner (If triggered) -->
   {% if alerts and alerts|length > 0 %}
   <div class="col-12">
-    <div class="card bg-danger bg-opacity-25 border-danger p-3">
-      <div class="d-flex align-items-center gap-2 text-danger fw-bold mb-2">
-        <i class="bi bi-exclamation-triangle-fill fs-5"></i> Recent Safety Alerts
+    <div class="card bg-danger bg-opacity-15 border border-danger p-3 shadow-sm">
+      <div class="d-flex align-items-center gap-3">
+        <img src="{{ url_for('static', filename='img/support-icon.svg') }}" alt="Crisis Support" width="48" height="48">
+        <div>
+          <div class="d-flex align-items-center gap-2 text-danger fw-bold mb-1">
+            <i class="bi bi-exclamation-triangle-fill"></i> Safety Support Triage Notice
+          </div>
+          <ul class="mb-0 small ps-3">
+            {% for a in alerts[:2] %}
+              <li class="mb-1">
+                <strong>{{ a.created_at.strftime('%b %d, %H:%M') if a.created_at else '' }}:</strong> 
+                {{ a.message }} — <em>{{ a.action_taken }}</em>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
       </div>
-      <ul class="mb-0 small ps-3">
-        {% for a in alerts[:2] %}
-          <li class="mb-1">
-            <strong>{{ a.created_at.strftime('%b %d, %H:%M') if a.created_at else '' }}:</strong> 
-            {{ a.message }} — <em>{{ a.action_taken }}</em>
-          </li>
-        {% endfor %}
-      </ul>
     </div>
   </div>
   {% endif %}
@@ -151,8 +177,10 @@
   <div class="col-lg-6">
     <div class="card glass p-4 h-100">
       <div class="d-flex align-items-center gap-2 mb-3">
-        <span class="fs-4">📊</span>
-        <h5 class="fw-bold mb-0">Agent 4: Monitoring Analysis</h5>
+        <div class="p-2 rounded bg-primary bg-opacity-20 text-primary">
+          <i class="bi bi-cpu fs-5"></i>
+        </div>
+        <h5 class="fw-bold mb-0">Agent 4: Longitudinal Monitoring Analysis</h5>
       </div>
       <p class="text-light">{{ trend_data.summary }}</p>
 
@@ -160,37 +188,37 @@
       <h6 class="text-muted small fw-bold text-uppercase mt-3 mb-2">7-Day Rolling Averages</h6>
       <div class="row g-2 text-center">
         <div class="col-4">
-          <div class="bg-dark bg-opacity-50 p-2 rounded">
+          <div class="bg-dark bg-opacity-50 p-2 rounded border border-secondary border-opacity-25">
             <span class="text-muted small d-block">Mood</span>
-            <span class="fw-bold">{{ trend_data.rolling_averages.mood }}/10</span>
+            <span class="fw-bold text-success">{{ trend_data.rolling_averages.mood }}/10</span>
           </div>
         </div>
         <div class="col-4">
-          <div class="bg-dark bg-opacity-50 p-2 rounded">
+          <div class="bg-dark bg-opacity-50 p-2 rounded border border-secondary border-opacity-25">
             <span class="text-muted small d-block">Anxiety</span>
-            <span class="fw-bold">{{ trend_data.rolling_averages.anxiety }}/10</span>
+            <span class="fw-bold text-warning">{{ trend_data.rolling_averages.anxiety }}/10</span>
           </div>
         </div>
         <div class="col-4">
-          <div class="bg-dark bg-opacity-50 p-2 rounded">
+          <div class="bg-dark bg-opacity-50 p-2 rounded border border-secondary border-opacity-25">
             <span class="text-muted small d-block">Stress</span>
-            <span class="fw-bold">{{ trend_data.rolling_averages.stress }}/10</span>
+            <span class="fw-bold text-danger">{{ trend_data.rolling_averages.stress }}/10</span>
           </div>
         </div>
         <div class="col-4">
-          <div class="bg-dark bg-opacity-50 p-2 rounded">
+          <div class="bg-dark bg-opacity-50 p-2 rounded border border-secondary border-opacity-25">
             <span class="text-muted small d-block">Sleep</span>
-            <span class="fw-bold">{{ trend_data.rolling_averages.sleep }}/10</span>
+            <span class="fw-bold text-info">{{ trend_data.rolling_averages.sleep }}/10</span>
           </div>
         </div>
         <div class="col-4">
-          <div class="bg-dark bg-opacity-50 p-2 rounded">
+          <div class="bg-dark bg-opacity-50 p-2 rounded border border-secondary border-opacity-25">
             <span class="text-muted small d-block">Isolation</span>
-            <span class="fw-bold">{{ trend_data.rolling_averages.isolation }}/10</span>
+            <span class="fw-bold text-light">{{ trend_data.rolling_averages.isolation }}/10</span>
           </div>
         </div>
         <div class="col-4">
-          <div class="bg-dark bg-opacity-50 p-2 rounded">
+          <div class="bg-dark bg-opacity-50 p-2 rounded border border-secondary border-opacity-25">
             <span class="text-muted small d-block">Distress</span>
             <span class="fw-bold text-primary">{{ trend_data.rolling_averages.distress_score_7d }}</span>
           </div>
@@ -203,13 +231,18 @@
   <!-- RAG Knowledge Base Resources -->
   <div class="col-lg-6">
     <div class="card glass p-4 h-100">
-      <div class="d-flex align-items-center gap-2 mb-3">
-        <span class="fs-4">📚</span>
-        <h5 class="fw-bold mb-0">RAG-Grounded Wellbeing Guidance</h5>
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <div class="p-2 rounded bg-info bg-opacity-20 text-info">
+            <i class="bi bi-book-half fs-5"></i>
+          </div>
+          <h5 class="fw-bold mb-0">RAG-Grounded Wellbeing Guidance</h5>
+        </div>
+        <img src="{{ url_for('static', filename='img/support-icon.svg') }}" alt="Support" width="36" height="36" class="opacity-75">
       </div>
       <div class="d-flex flex-column gap-3">
         {% for res in resources %}
-        <div class="p-3 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+        <div class="p-3 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-25 card-hover">
           <div class="d-flex justify-content-between align-items-center mb-1">
             <span class="badge bg-primary bg-opacity-25 text-primary small">{{ res.topic }}</span>
             <span class="text-muted small"><i class="bi bi-file-earmark-text"></i> {{ res.source }}</span>
@@ -229,7 +262,7 @@ document.addEventListener("DOMContentLoaded", function() {
   fetch("{{ url_for('dashboard.dashboard_data') }}")
     .then(r => r.json())
     .then(data => {
-      const labels = data.labels.length > 0 ? data.labels : ["No Entries"];
+      const labels = data.labels && data.labels.length > 0 ? data.labels : ["Day 1"];
 
       // 1. Metrics Chart
       const ctx1 = document.getElementById("metricsChart").getContext("2d");
@@ -238,22 +271,22 @@ document.addEventListener("DOMContentLoaded", function() {
         data: {
           labels: labels,
           datasets: [
-            { label: "Mood (Higher=Better)", data: data.mood, borderColor: "#10b981", backgroundColor: "#10b98120", tension: 0.3, fill: false },
-            { label: "Anxiety", data: data.anxiety, borderColor: "#f59e0b", backgroundColor: "#f59e0b20", tension: 0.3, fill: false },
-            { label: "Stress", data: data.stress, borderColor: "#ef4444", backgroundColor: "#ef444420", tension: 0.3, fill: false },
-            { label: "Sleep Quality", data: data.sleep_quality, borderColor: "#3b82f6", backgroundColor: "#3b82f620", tension: 0.3, fill: false },
-            { label: "Social Isolation", data: data.isolation_score, borderColor: "#8b5cf6", backgroundColor: "#8b5cf620", tension: 0.3, fill: false }
+            { label: "Mood (Higher=Better)", data: data.mood, borderColor: "#10b981", backgroundColor: "rgba(16, 185, 129, 0.1)", tension: 0.35, pointRadius: 4, fill: false },
+            { label: "Anxiety", data: data.anxiety, borderColor: "#f59e0b", backgroundColor: "rgba(245, 158, 11, 0.1)", tension: 0.35, pointRadius: 4, fill: false },
+            { label: "Stress", data: data.stress, borderColor: "#ef4444", backgroundColor: "rgba(239, 68, 68, 0.1)", tension: 0.35, pointRadius: 4, fill: false },
+            { label: "Sleep Quality", data: data.sleep_quality, borderColor: "#3b82f6", backgroundColor: "rgba(59, 130, 246, 0.1)", tension: 0.35, pointRadius: 4, fill: false },
+            { label: "Social Isolation", data: data.isolation_score, borderColor: "#a855f7", backgroundColor: "rgba(168, 85, 247, 0.1)", tension: 0.35, pointRadius: 4, fill: false }
           ]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           scales: {
-            y: { min: 1, max: 10, grid: { color: "rgba(255,255,255,0.06)" } },
-            x: { grid: { color: "rgba(255,255,255,0.06)" } }
+            y: { min: 1, max: 10, grid: { color: "rgba(255,255,255,0.06)" }, ticks: { color: "#94a3b8" } },
+            x: { grid: { color: "rgba(255,255,255,0.06)" }, ticks: { color: "#94a3b8" } }
           },
           plugins: {
-            legend: { position: "top", labels: { color: "#cbd5e1", boxWidth: 12 } }
+            legend: { position: "top", labels: { color: "#cbd5e1", boxWidth: 12, usePointStyle: true } }
           }
         }
       });
@@ -268,8 +301,9 @@ document.addEventListener("DOMContentLoaded", function() {
             label: "Distress Score",
             data: data.distress_score,
             borderColor: "#6366f1",
-            backgroundColor: "rgba(99, 102, 241, 0.2)",
-            tension: 0.3,
+            backgroundColor: "rgba(99, 102, 241, 0.25)",
+            tension: 0.35,
+            pointRadius: 4,
             fill: true
           }]
         },
@@ -277,8 +311,8 @@ document.addEventListener("DOMContentLoaded", function() {
           responsive: true,
           maintainAspectRatio: false,
           scales: {
-            y: { min: 0, max: 1.0, grid: { color: "rgba(255,255,255,0.06)" } },
-            x: { grid: { color: "rgba(255,255,255,0.06)" } }
+            y: { min: 0, max: 1.0, grid: { color: "rgba(255,255,255,0.06)" }, ticks: { color: "#94a3b8" } },
+            x: { grid: { color: "rgba(255,255,255,0.06)" }, ticks: { color: "#94a3b8" } }
           },
           plugins: {
             legend: { display: false }

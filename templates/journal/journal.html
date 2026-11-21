@@ -1,67 +1,87 @@
 {% extends "base.html" %}
-{% block title %}Journal – CareAI{% endblock %}
+{% block title %}Reflective Journal – CareAI Mental Health Monitor{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
-  <div class="col-lg-8">
-    <div class="card glass p-4 mb-4">
-      <div class="d-flex align-items-center gap-3 mb-3">
-        <span class="fs-2">✍️</span>
-        <div>
-          <h3 class="fw-bold mb-0">Reflective Journal</h3>
-          <p class="text-muted small mb-0">Expressive writing helps process complex emotions and externalize stress</p>
+  <div class="col-lg-9 col-xl-8">
+    <!-- Hero Banner Card -->
+    <div class="card glass border-0 overflow-hidden mb-4 p-0" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border-radius: 18px;">
+      <div class="row g-0 align-items-center">
+        <div class="col-md-7 p-4">
+          <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-warning bg-opacity-20 border border-warning border-opacity-30 text-warning small fw-semibold mb-2">
+            <i class="bi bi-pencil-fill"></i> Agent 5: Safety & Sentiment Triage
+          </div>
+          <h3 class="fw-bold text-white mb-2">Reflective Journal</h3>
+          <p class="text-secondary small mb-0">
+            Expressive writing provides catharsis and helps process complex stressors. Your reflections are analyzed privately to monitor emotional trends and verify crisis safety.
+          </p>
+        </div>
+        <div class="col-md-5 d-none d-md-block text-center p-3">
+          <img src="{{ url_for('static', filename='img/journal-hero.svg') }}" alt="Reflective Journal Illustration" class="img-fluid" style="max-height: 160px; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.4));">
         </div>
       </div>
+    </div>
 
+    <!-- Journal Form Card -->
+    <div class="card glass p-4 mb-4" style="border-radius: 18px;">
       <form id="journalForm">
         <div class="mb-3">
-          <label for="journalContent" class="form-label text-light fw-semibold">What's on your mind today?</label>
-          <textarea id="journalContent" class="form-control bg-dark text-light border-secondary" rows="5" placeholder="Write freely about your thoughts, feelings, or whatever you are navigating right now..." required></textarea>
-          <div class="form-text text-muted small">
-            🔒 Private & Confidential: Your reflection is analyzed by Agent 5 for safety and emotional sentiment.
+          <label for="journalContent" class="form-label text-light fw-semibold d-flex justify-content-between align-items-center">
+            <span>What's on your mind today?</span>
+            <span class="badge bg-secondary bg-opacity-40 text-muted small"><i class="bi bi-shield-lock"></i> Confidential & Encrypted</span>
+          </label>
+          <textarea id="journalContent" class="form-control bg-dark text-light border-secondary p-3" rows="6" placeholder="Write freely about your thoughts, emotions, challenges, or whatever you are currently experiencing..." style="border-radius: 12px; font-size: 0.95rem; line-height: 1.6;" required></textarea>
+          <div class="form-text text-muted small mt-2">
+            🔒 Private & Confidential: Personal reflections are kept strictly in your account. Zero external third-party API exposure.
           </div>
         </div>
 
-        <button type="submit" id="saveJournalBtn" class="btn btn-primary px-4 fw-semibold">
+        <button type="submit" id="saveJournalBtn" class="btn btn-primary px-4 py-2 fw-semibold shadow-sm">
           <i class="bi bi-save me-1"></i> Save Entry & Analyze
         </button>
       </form>
     </div>
 
     <!-- Agent Response Feedback -->
-    <div id="journalResultCard" class="card glass p-4 mb-4 d-none">
+    <div id="journalResultCard" class="card glass p-4 mb-4 d-none" style="border-radius: 18px;">
       <div class="d-flex align-items-center gap-2 mb-3">
-        <span class="fs-4">🧠</span>
-        <h5 class="fw-bold mb-0">Analysis & Wellbeing Feedback</h5>
+        <img src="{{ url_for('static', filename='img/bot-avatar.svg') }}" alt="CareAI" width="36" height="36" class="rounded-circle">
+        <h5 class="fw-bold mb-0 text-white">AI Analysis & Wellbeing Feedback</h5>
       </div>
 
-      <div id="journalSafetyBanner" class="alert alert-danger d-none mb-3">
-        <h6 class="alert-heading fw-bold"><i class="bi bi-shield-exclamation"></i> Crisis Safety Support Activated</h6>
+      <div id="journalSafetyBanner" class="alert alert-danger d-none mb-3 border-danger">
+        <h6 class="alert-heading fw-bold d-flex align-items-center gap-2">
+          <img src="{{ url_for('static', filename='img/support-icon.svg') }}" alt="Support" width="28" height="28">
+          Crisis Safety Support Activated
+        </h6>
         <div id="journalSafetyText" class="small"></div>
       </div>
 
-      <div class="p-3 rounded bg-dark bg-opacity-75 mb-3">
-        <span class="text-muted small d-block mb-1">AGENT OBSERVATION</span>
+      <div class="p-3 rounded bg-dark bg-opacity-75 mb-3 border border-secondary border-opacity-25">
+        <span class="text-muted small d-block mb-1 text-uppercase fw-semibold">Agent Observation</span>
         <p id="journalAgentResponse" class="mb-0 text-light"></p>
       </div>
 
-      <div id="sentimentBadgeContainer" class="mb-3">
-        <span class="text-muted small me-2">Identified Tone:</span>
-        <span id="sentimentBadge" class="badge bg-secondary text-uppercase">Neutral</span>
+      <div id="sentimentBadgeContainer" class="d-flex align-items-center gap-2">
+        <span class="text-muted small">Identified Sentiment:</span>
+        <span id="sentimentBadge" class="badge bg-secondary text-uppercase px-2 py-1">Neutral</span>
       </div>
     </div>
 
     <!-- Past Journal Entries -->
-    <div class="card glass p-4">
-      <h5 class="fw-bold mb-3"><i class="bi bi-journal-bookmark me-1"></i> Previous Entries</h5>
+    <div class="card glass p-4" style="border-radius: 18px;">
+      <h5 class="fw-bold mb-3"><i class="bi bi-journal-bookmark me-1 text-primary"></i> Previous Reflections</h5>
       {% if entries %}
         <div class="d-flex flex-column gap-3">
           {% for e in entries %}
-          <div class="p-3 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+          <div class="p-3 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-25 card-hover">
             <div class="d-flex justify-content-between text-muted small mb-2">
-              <span><i class="bi bi-calendar3"></i> {{ e.created_at.strftime('%B %d, %Y at %H:%M') if e.created_at else '' }}</span>
+              <span><i class="bi bi-calendar3 me-1"></i> {{ e.created_at.strftime('%B %d, %Y at %H:%M') if e.created_at else '' }}</span>
+              {% if e.sentiment_label %}
+                <span class="badge bg-secondary bg-opacity-40 text-light small">{{ e.sentiment_label }}</span>
+              {% endif %}
             </div>
-            <p class="text-light mb-0" style="white-space: pre-wrap;">{{ e.content }}</p>
+            <p class="text-light mb-0" style="white-space: pre-wrap; font-size: 0.95rem;">{{ e.content }}</p>
           </div>
           {% endfor %}
         </div>
@@ -99,28 +119,32 @@ document.getElementById("journalForm").addEventListener("submit", function(e) {
     card.classList.remove("d-none");
     document.getElementById("journalAgentResponse").innerText = data.response || "Entry saved.";
 
-    // Tone badge
-    const badge = document.getElementById("sentimentBadge");
-    const sent = (data.sentiment && data.sentiment.sentiment) ? data.sentiment.sentiment : "neutral";
-    badge.innerText = sent;
-    badge.className = "badge text-uppercase " + (sent === 'distressed' ? 'badge-high' : (sent === 'positive' ? 'bg-success' : 'bg-secondary'));
-
-    // Safety Banner
-    const banner = document.getElementById("journalSafetyBanner");
-    if (data.priority_override || (data.safety_alert && data.safety_alert.is_urgent)) {
-      banner.classList.remove("d-none");
-      document.getElementById("journalSafetyText").innerText = data.safety_alert.crisis_resources || data.response;
+    const sBanner = document.getElementById("journalSafetyBanner");
+    if (data.safety_flag) {
+      sBanner.classList.remove("d-none");
+      document.getElementById("journalSafetyText").innerText = data.safety_reason || "Safety check flagged concern.";
     } else {
-      banner.classList.add("d-none");
+      sBanner.classList.add("d-none");
     }
 
-    document.getElementById("journalContent").value = "";
-    card.scrollIntoView({ behavior: 'smooth' });
+    if (data.sentiment) {
+      const sBadge = document.getElementById("sentimentBadge");
+      sBadge.innerText = data.sentiment;
+      if (data.sentiment === "positive") {
+        sBadge.className = "badge bg-success";
+      } else if (data.sentiment === "negative") {
+        sBadge.className = "badge bg-danger";
+      } else {
+        sBadge.className = "badge bg-secondary";
+      }
+    }
+
+    card.scrollIntoView({ behavior: "smooth" });
   })
   .catch(err => {
     btn.disabled = false;
     btn.innerHTML = `<i class="bi bi-save me-1"></i> Save Entry & Analyze`;
-    alert("Error saving journal: " + err);
+    alert("Error saving journal entry: " + err);
   });
 });
 </script>

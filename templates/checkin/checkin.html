@@ -1,123 +1,139 @@
 {% extends "base.html" %}
-{% block title %}Daily Check‑In – CareAI{% endblock %}
+{% block title %}Daily Check‑In – CareAI Mental Health Monitor{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
-  <div class="col-lg-8">
-    <div class="card glass p-4 mb-4">
-      <div class="d-flex align-items-center gap-3 mb-3">
-        <span class="fs-2">🩺</span>
-        <div>
-          <h3 class="fw-bold mb-0">Daily Mental Health Check‑In</h3>
-          <p class="text-muted small mb-0">Agent 3 evaluates your 5 core indicators on a 1–10 scale</p>
+  <div class="col-lg-9 col-xl-8">
+    <!-- Hero Banner Card -->
+    <div class="card glass border-0 overflow-hidden mb-4 p-0" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border-radius: 18px;">
+      <div class="row g-0 align-items-center">
+        <div class="col-md-7 p-4">
+          <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-success bg-opacity-20 border border-success border-opacity-30 text-success small fw-semibold mb-2">
+            <i class="bi bi-heart-pulse-fill"></i> Agent 3: Distress Analysis
+          </div>
+          <h3 class="fw-bold text-white mb-2">Daily Wellbeing Check‑In</h3>
+          <p class="text-secondary small mb-0">
+            Take 60 seconds to rate your core indicators. CareAI normalizes your inputs into a deterministic distress index (0.00 – 1.00) to detect shifts before they become crises.
+          </p>
+        </div>
+        <div class="col-md-5 d-none d-md-block text-center p-3">
+          <img src="{{ url_for('static', filename='img/checkin-hero.svg') }}" alt="Daily Check-In Illustration" class="img-fluid" style="max-height: 160px; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.4));">
         </div>
       </div>
+    </div>
 
+    <!-- Check-in Form Card -->
+    <div class="card glass p-4 mb-4" style="border-radius: 18px;">
       <!-- Live Score Badge Preview -->
-      <div class="p-3 mb-4 rounded bg-dark bg-opacity-75 border border-secondary d-flex justify-content-between align-items-center">
+      <div class="p-3 mb-4 rounded bg-dark bg-opacity-75 border border-secondary border-opacity-50 d-flex justify-content-between align-items-center">
         <div>
-          <span class="text-muted small d-block">REAL-TIME COMPOSITE DISTRESS PREVIEW</span>
+          <span class="text-muted small d-block fw-semibold text-uppercase">Real-Time Distress Indicator Preview</span>
           <span id="previewScore" class="fs-4 fw-bold text-light">0.26</span>
           <span class="text-muted small">/ 1.00</span>
         </div>
-        <span id="previewBadge" class="badge badge-low text-uppercase px-3 py-2 fs-6">Low</span>
+        <div>
+          <span id="previewBadge" class="badge badge-low text-uppercase px-3 py-2 fs-6">Low</span>
+        </div>
       </div>
 
       <form id="checkinForm">
         <!-- Metric 1: Mood -->
         <div class="mb-4">
           <div class="d-flex justify-content-between align-items-center mb-1">
-            <label class="form-label fw-semibold mb-0">
+            <label class="form-label fw-semibold text-light mb-0">
               <i class="bi bi-emoji-smile text-success me-1"></i> Overall Mood (Higher is Better)
             </label>
             <span id="moodVal" class="badge bg-secondary px-2 py-1">7 / 10</span>
           </div>
           <input type="range" class="form-range metric-slider" id="mood" min="1" max="10" value="7">
           <div class="d-flex justify-content-between text-muted small">
-            <span>1 (Very Low / Exhausted)</span>
-            <span>10 (Optimistic / Energetic)</span>
+            <span>1 (Extremely Depressed / Flat)</span>
+            <span>10 (Optimistic / Energized)</span>
           </div>
         </div>
 
         <!-- Metric 2: Anxiety -->
         <div class="mb-4">
           <div class="d-flex justify-content-between align-items-center mb-1">
-            <label class="form-label fw-semibold mb-0">
+            <label class="form-label fw-semibold text-light mb-0">
               <i class="bi bi-heart-pulse text-warning me-1"></i> Anxiety Level (Lower is Better)
             </label>
             <span id="anxietyVal" class="badge bg-secondary px-2 py-1">3 / 10</span>
           </div>
           <input type="range" class="form-range metric-slider" id="anxiety" min="1" max="10" value="3">
           <div class="d-flex justify-content-between text-muted small">
-            <span>1 (Completely Calm)</span>
-            <span>10 (Extreme Panic / Dread)</span>
+            <span>1 (Calm & Serene)</span>
+            <span>10 (Severe Panic / Agitation)</span>
           </div>
         </div>
 
         <!-- Metric 3: Stress -->
         <div class="mb-4">
           <div class="d-flex justify-content-between align-items-center mb-1">
-            <label class="form-label fw-semibold mb-0">
+            <label class="form-label fw-semibold text-light mb-0">
               <i class="bi bi-lightning text-danger me-1"></i> Stress Level (Lower is Better)
             </label>
             <span id="stressVal" class="badge bg-secondary px-2 py-1">4 / 10</span>
           </div>
           <input type="range" class="form-range metric-slider" id="stress" min="1" max="10" value="4">
           <div class="d-flex justify-content-between text-muted small">
-            <span>1 (No Stress / In Control)</span>
-            <span>10 (Overwhelmed / Burnout)</span>
+            <span>1 (In Full Control / Manageable)</span>
+            <span>10 (Overwhelmed / Imminent Burnout)</span>
           </div>
         </div>
 
         <!-- Metric 4: Sleep Quality -->
         <div class="mb-4">
           <div class="d-flex justify-content-between align-items-center mb-1">
-            <label class="form-label fw-semibold mb-0">
+            <label class="form-label fw-semibold text-light mb-0">
               <i class="bi bi-moon-stars text-info me-1"></i> Sleep Quality (Higher is Better)
             </label>
             <span id="sleepVal" class="badge bg-secondary px-2 py-1">8 / 10</span>
           </div>
           <input type="range" class="form-range metric-slider" id="sleep_quality" min="1" max="10" value="8">
           <div class="d-flex justify-content-between text-muted small">
-            <span>1 (Insomnia / Restless)</span>
-            <span>10 (Deep / Restorative)</span>
+            <span>1 (Insomnia / Disrupted)</span>
+            <span>10 (Deep / Fully Restorative)</span>
           </div>
         </div>
 
         <!-- Metric 5: Isolation -->
         <div class="mb-4">
           <div class="d-flex justify-content-between align-items-center mb-1">
-            <label class="form-label fw-semibold mb-0">
+            <label class="form-label fw-semibold text-light mb-0">
               <i class="bi bi-people text-primary me-1"></i> Social Isolation (Lower is Better)
             </label>
             <span id="isolationVal" class="badge bg-secondary px-2 py-1">2 / 10</span>
           </div>
           <input type="range" class="form-range metric-slider" id="isolation_score" min="1" max="10" value="2">
           <div class="d-flex justify-content-between text-muted small">
-            <span>1 (Supported & Connected)</span>
-            <span>10 (Completely Cut Off / Isolated)</span>
+            <span>1 (Closely Connected / Supported)</span>
+            <span>10 (Isolated / Withdrawn)</span>
           </div>
         </div>
 
-        <button type="submit" id="submitCheckinBtn" class="btn btn-primary w-100 py-2 fw-semibold">
-          <i class="bi bi-check-circle me-1"></i> Submit Daily Check‑In
+        <button type="submit" id="submitCheckinBtn" class="btn btn-primary w-100 py-3 fw-semibold shadow-sm fs-6">
+          <i class="bi bi-check2-circle me-1"></i> Save Assessment & Run Multi-Agent Evaluation
         </button>
       </form>
     </div>
 
     <!-- Multi-Agent Evaluation Feedback Card (Shown after submit) -->
-    <div id="resultCard" class="card glass p-4 mb-4 d-none">
+    <div id="resultCard" class="card glass p-4 mb-4 d-none" style="border-radius: 18px;">
       <div class="d-flex align-items-center gap-2 mb-3">
-        <span class="fs-4">🤖</span>
-        <h4 class="fw-bold mb-0">Multi-Agent AI Evaluation</h4>
+        <img src="{{ url_for('static', filename='img/bot-avatar.svg') }}" alt="CareAI" width="36" height="36" class="rounded-circle">
+        <h4 class="fw-bold mb-0 text-white">Multi-Agent AI Evaluation</h4>
       </div>
       
-      <div id="safetyBanner" class="alert alert-danger d-none mb-3">
-        <h5 class="alert-heading fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> Safety Concern Flagged</h5>
+      <div id="safetyBanner" class="alert alert-danger d-none mb-3 border-danger">
+        <h5 class="alert-heading fw-bold d-flex align-items-center gap-2">
+          <img src="{{ url_for('static', filename='img/support-icon.svg') }}" alt="Support" width="28" height="28">
+          Safety Concern Flagged
+        </h5>
         <p id="safetyText" class="mb-0 small"></p>
       </div>
 
-      <div class="p-3 rounded bg-dark bg-opacity-75 mb-3">
+      <div class="p-3 rounded bg-dark bg-opacity-75 mb-3 border border-secondary border-opacity-25">
         <p id="agentResponse" class="mb-0 text-light"></p>
       </div>
 
@@ -132,8 +148,8 @@
     </div>
 
     <!-- Recent Check-Ins History -->
-    <div class="card glass p-4">
-      <h5 class="fw-bold mb-3"><i class="bi bi-clock-history me-1"></i> Recent Check‑Ins</h5>
+    <div class="card glass p-4" style="border-radius: 18px;">
+      <h5 class="fw-bold mb-3"><i class="bi bi-clock-history me-1 text-primary"></i> Assessment History</h5>
       {% if recent_checkins %}
       <div class="table-responsive">
         <table class="table table-dark table-hover table-sm align-middle">
@@ -146,18 +162,18 @@
               <th>Sleep</th>
               <th>Isolation</th>
               <th>Distress</th>
-              <th>Status</th>
+              <th>Level</th>
             </tr>
           </thead>
           <tbody>
             {% for c in recent_checkins %}
             <tr>
               <td>{{ c.timestamp.strftime('%b %d, %H:%M') if c.timestamp else '' }}</td>
-              <td>{{ c.mood }}/10</td>
-              <td>{{ c.anxiety }}/10</td>
-              <td>{{ c.stress }}/10</td>
-              <td>{{ c.sleep_quality }}/10</td>
-              <td>{{ c.isolation_score }}/10</td>
+              <td><span class="badge bg-success bg-opacity-25 text-success">{{ c.mood }}/10</span></td>
+              <td><span class="badge bg-warning bg-opacity-25 text-warning">{{ c.anxiety }}/10</span></td>
+              <td><span class="badge bg-danger bg-opacity-25 text-danger">{{ c.stress }}/10</span></td>
+              <td><span class="badge bg-info bg-opacity-25 text-info">{{ c.sleep_quality }}/10</span></td>
+              <td><span class="badge bg-secondary bg-opacity-25 text-light">{{ c.isolation_score }}/10</span></td>
               <td class="fw-bold text-primary">{{ "%.2f"|format(c.distress_score) if c.distress_score is not none else '--' }}</td>
               <td>
                 {% set l = c.distress_level or 'low' %}
@@ -178,7 +194,6 @@
 
 {% block scripts %}
 <script>
-// Formula: (((10 - mood) / 9) * 0.30 + ((anxiety - 1) / 9) * 0.25 + ((stress - 1) / 9) * 0.20 + ((isolation - 1) / 9) * 0.15 + ((10 - sleep) / 9) * 0.10)
 function computePreview() {
   const m = parseFloat(document.getElementById("mood").value);
   const a = parseFloat(document.getElementById("anxiety").value);
@@ -197,37 +212,38 @@ function computePreview() {
                 ((s - 1) / 9) * 0.20 +
                 ((i - 1) / 9) * 0.15 +
                 ((10 - sl) / 9) * 0.10;
-  
-  const clamped = Math.max(0, Math.min(1, score));
-  document.getElementById("previewScore").innerText = clamped.toFixed(2);
+
+  const scoreFixed = score.toFixed(2);
+  document.getElementById("previewScore").innerText = scoreFixed;
 
   const badge = document.getElementById("previewBadge");
-  badge.className = "badge text-uppercase px-3 py-2 fs-6";
-  if (clamped < 0.35) {
-    badge.classList.add("badge-low");
-    badge.innerText = "Low";
-  } else if (clamped < 0.65) {
-    badge.classList.add("badge-moderate");
+  badge.className = "badge text-uppercase px-3 py-2 fs-6 ";
+  if (score < 0.35) {
+    badge.className += "badge-low";
+    badge.innerText = "Low Distress";
+  } else if (score < 0.60) {
+    badge.className += "badge-moderate";
     badge.innerText = "Moderate";
-  } else if (clamped < 0.85) {
-    badge.classList.add("badge-high");
-    badge.innerText = "High";
+  } else if (score < 0.80) {
+    badge.className += "badge-high";
+    badge.innerText = "High Distress";
   } else {
-    badge.classList.add("badge-critical");
+    badge.className += "badge-critical";
     badge.innerText = "Critical";
   }
 }
 
-["mood", "anxiety", "stress", "sleep_quality", "isolation_score"].forEach(id => {
-  document.getElementById(id).addEventListener("input", computePreview);
+document.querySelectorAll(".metric-slider").forEach(el => {
+  el.addEventListener("input", computePreview);
 });
 
-// Async Checkin Submission
+computePreview();
+
 document.getElementById("checkinForm").addEventListener("submit", function(e) {
   e.preventDefault();
   const btn = document.getElementById("submitCheckinBtn");
   btn.disabled = true;
-  btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Evaluating with AI Agents...`;
+  btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Running LangGraph Multi-Agent Workflow...`;
 
   const payload = {
     mood: parseInt(document.getElementById("mood").value),
@@ -248,42 +264,38 @@ document.getElementById("checkinForm").addEventListener("submit", function(e) {
   .then(r => r.json())
   .then(data => {
     btn.disabled = false;
-    btn.innerHTML = `<i class="bi bi-check-circle me-1"></i> Submit Daily Check‑In`;
+    btn.innerHTML = `<i class="bi bi-check2-circle me-1"></i> Save Assessment & Run Multi-Agent Evaluation`;
 
-    const resCard = document.getElementById("resultCard");
-    resCard.classList.remove("d-none");
-    document.getElementById("agentResponse").innerText = data.response || "Check-in recorded successfully.";
+    const card = document.getElementById("resultCard");
+    card.classList.remove("d-none");
+    document.getElementById("agentResponse").innerText = data.response || "Assessment processed successfully.";
 
-    // Safety Alert check
     const safetyBanner = document.getElementById("safetyBanner");
-    if (data.priority_override || (data.safety_alert && data.safety_alert.is_urgent)) {
+    if (data.safety_flag) {
       safetyBanner.classList.remove("d-none");
-      document.getElementById("safetyText").innerText = data.safety_alert.crisis_resources || data.response;
+      document.getElementById("safetyText").innerText = data.safety_reason || "Safety check triggered alert guidance.";
     } else {
       safetyBanner.classList.add("d-none");
     }
 
-    // Recommendations list
-    const recList = document.getElementById("recommendationsList");
-    recList.innerHTML = "";
+    const recsList = document.getElementById("recommendationsList");
+    recsList.innerHTML = "";
     if (data.recommendations && data.recommendations.length > 0) {
       data.recommendations.forEach(r => {
         const item = document.createElement("div");
-        item.className = "p-2 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-25";
-        item.innerHTML = `<strong>${r.title}</strong> (${r.duration || 'Short'})<br><span class="text-muted small">${r.steps}</span>`;
-        recList.appendChild(item);
+        item.className = "p-2 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-25 small text-light";
+        item.innerHTML = `<strong>•</strong> ${r}`;
+        recsList.appendChild(item);
       });
     }
 
-    resCard.scrollIntoView({ behavior: 'smooth' });
+    card.scrollIntoView({ behavior: "smooth" });
   })
   .catch(err => {
     btn.disabled = false;
-    btn.innerHTML = `<i class="bi bi-check-circle me-1"></i> Submit Daily Check‑In`;
+    btn.innerHTML = `<i class="bi bi-check2-circle me-1"></i> Save Assessment & Run Multi-Agent Evaluation`;
     alert("Error submitting check-in: " + err);
   });
 });
-
-computePreview();
 </script>
 {% endblock %}

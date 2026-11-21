@@ -25,6 +25,7 @@ class Config:
         SQLALCHEMY_DATABASE_URI = f"sqlite:///{db_path.replace(os.sep, '/')}"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     WTF_CSRF_ENABLED = True
+    TEMPLATES_AUTO_RELOAD = True
 
     # Multi-Agent & RAG settings
     OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'llama3.2')

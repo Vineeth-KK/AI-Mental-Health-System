@@ -1,17 +1,22 @@
 {% extends "base.html" %}
-{% block title %}AI Chat – CareAI{% endblock %}
+{% block title %}AI Wellbeing Chat – CareAI{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
-  <div class="col-lg-8 col-md-10">
-    <div class="card glass shadow-lg">
+  <div class="col-lg-9 col-xl-8">
+    <div class="card glass shadow-lg border-0 overflow-hidden" style="border-radius: 18px;">
       <!-- Chat Header -->
-      <div class="p-3 border-bottom border-secondary d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center gap-2">
-          <span class="fs-4">🤖</span>
+      <div class="p-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center bg-dark bg-opacity-40">
+        <div class="d-flex align-items-center gap-3">
+          <div class="position-relative">
+            <img src="{{ url_for('static', filename='img/bot-avatar.svg') }}" alt="CareAI Avatar" width="44" height="44" class="rounded-circle brand-glow">
+            <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-dark rounded-circle" style="width: 10px; height: 10px;"></span>
+          </div>
           <div>
-            <h5 class="fw-bold mb-0">CareAI Wellbeing Companion</h5>
-            <span class="text-muted small"><i class="bi bi-circle-fill text-success" style="font-size: 8px;"></i> Six-Agent Coordinated &bull; Non-diagnostic</span>
+            <h5 class="fw-bold mb-0 text-white">CareAI Wellbeing Companion</h5>
+            <span class="text-secondary small d-flex align-items-center gap-1">
+              <span class="text-success">&bull;</span> Six-Agent Coordinated &bull; Local Quantized LLM &bull; Non-diagnostic
+            </span>
           </div>
         </div>
         <button id="clearChatBtn" class="btn btn-outline-secondary btn-sm" title="Clear conversation view">
@@ -20,37 +25,42 @@
       </div>
 
       <!-- Quick prompts bar -->
-      <div class="p-2 border-bottom border-secondary bg-dark bg-opacity-25 d-flex gap-2 overflow-x-auto">
-        <button class="btn btn-sm btn-outline-secondary text-nowrap quick-prompt">🌿 4-7-8 Breathing</button>
-        <button class="btn btn-sm btn-outline-secondary text-nowrap quick-prompt">💼 Feeling overwhelmed with work</button>
-        <button class="btn btn-sm btn-outline-secondary text-nowrap quick-prompt">🌙 Trouble sleeping tonight</button>
-        <button class="btn btn-sm btn-outline-secondary text-nowrap quick-prompt">🧘 5-4-3-2-1 Grounding</button>
+      <div class="p-2 px-3 border-bottom border-secondary border-opacity-25 bg-dark bg-opacity-25 d-flex gap-2 overflow-x-auto">
+        <button class="btn btn-sm btn-outline-secondary text-nowrap quick-prompt rounded-pill px-3">🌿 4-7-8 Breathing Technique</button>
+        <button class="btn btn-sm btn-outline-secondary text-nowrap quick-prompt rounded-pill px-3">💼 Feeling overwhelmed with work</button>
+        <button class="btn btn-sm btn-outline-secondary text-nowrap quick-prompt rounded-pill px-3">🌙 Trouble falling asleep tonight</button>
+        <button class="btn btn-sm btn-outline-secondary text-nowrap quick-prompt rounded-pill px-3">🧘 5-4-3-2-1 Sensory Grounding</button>
       </div>
 
       <!-- Chat Messages Container -->
       <div id="chatMessages" class="chat-container">
         <!-- Welcome Message -->
-        <div class="chat-bubble chat-ai">
-          <strong>CareAI:</strong><br>
-          Hello {{ current_user.username }}, I am here to support your mental wellbeing. Feel free to talk through any worries, stress, or thoughts on your mind, or ask for a calming grounding exercise. How are you feeling today?
+        <div class="chat-row chat-ai-row d-flex gap-2 align-items-start">
+          <img src="{{ url_for('static', filename='img/bot-avatar.svg') }}" alt="AI" width="32" height="32" class="rounded-circle mt-1 flex-shrink-0">
+          <div class="chat-bubble chat-ai">
+            <strong class="text-primary-emphasis d-block mb-1">CareAI Companion</strong>
+            Hello {{ current_user.username }}, I am here to support your mental wellbeing. Feel free to talk through any worries, stress, or thoughts on your mind, or ask for a calming grounding exercise. How are you feeling right now?
+          </div>
         </div>
       </div>
 
       <!-- Typing Indicator -->
-      <div id="typingIndicator" class="px-3 py-1 text-muted small d-none">
-        <span class="spinner-grow spinner-grow-sm text-primary me-1" style="width: 10px; height: 10px;"></span> CareAI is thinking...
+      <div id="typingIndicator" class="px-4 py-2 text-muted small d-none d-flex align-items-center gap-2">
+        <span class="spinner-grow spinner-grow-sm text-primary" role="status" aria-hidden="true"></span>
+        <span class="text-secondary">CareAI is orchestrating multi-agent response...</span>
       </div>
 
       <!-- Input Bar -->
-      <div class="p-3 border-top border-secondary">
+      <div class="p-3 border-top border-secondary border-opacity-25 bg-dark bg-opacity-30">
         <form id="chatForm" class="d-flex gap-2">
-          <input type="text" id="chatInput" class="form-control bg-dark text-light border-secondary" placeholder="Type a supportive message or question..." autocomplete="off" required>
-          <button type="submit" id="sendBtn" class="btn btn-primary px-4">
-            <i class="bi bi-send-fill"></i>
+          <input type="text" id="chatInput" class="form-control bg-dark text-light border-secondary p-2 px-3" placeholder="Type a message or question about how you are feeling..." autocomplete="off" required style="border-radius: 12px;">
+          <button type="submit" id="sendBtn" class="btn btn-primary px-4 fw-semibold" style="border-radius: 12px;">
+            <i class="bi bi-send-fill me-1"></i> Send
           </button>
         </form>
-        <div class="form-text text-muted small mt-2">
-          CareAI provides supportive guidance and relaxation practices. Not for medical emergencies.
+        <div class="d-flex justify-content-between align-items-center text-muted small mt-2">
+          <span>CareAI offers empathetic support & relaxation practices. Not for medical diagnosis or clinical emergencies.</span>
+          <span class="badge bg-secondary bg-opacity-25 text-muted">Confidential</span>
         </div>
       </div>
     </div>
@@ -69,16 +79,37 @@ const sendBtn = document.getElementById("sendBtn");
 const typingIndicator = document.getElementById("typingIndicator");
 
 function appendMessage(role, text, isSafetyOverride = false) {
-  const bubble = document.createElement("div");
-  bubble.className = "chat-bubble " + (role === "user" ? "chat-user" : (isSafetyOverride ? "chat-safety-override" : "chat-ai"));
+  const row = document.createElement("div");
   
   if (role === "user") {
+    row.className = "chat-row chat-user-row d-flex justify-content-end";
+    const bubble = document.createElement("div");
+    bubble.className = "chat-bubble chat-user";
     bubble.innerHTML = text;
+    row.appendChild(bubble);
   } else {
-    bubble.innerHTML = (isSafetyOverride ? "<strong>⚠️ Safety Alert:</strong><br>" : "<strong>CareAI:</strong><br>") + text.replace(/\n/g, "<br>");
+    row.className = "chat-row chat-ai-row d-flex gap-2 align-items-start";
+    
+    const avatar = document.createElement("img");
+    avatar.src = "{{ url_for('static', filename='img/bot-avatar.svg') }}";
+    avatar.width = 32;
+    avatar.height = 32;
+    avatar.className = "rounded-circle mt-1 flex-shrink-0";
+    avatar.alt = "AI";
+    row.appendChild(avatar);
+
+    const bubble = document.createElement("div");
+    bubble.className = "chat-bubble " + (isSafetyOverride ? "chat-safety-override" : "chat-ai");
+    
+    if (isSafetyOverride) {
+      bubble.innerHTML = `<div class="d-flex align-items-center gap-2 mb-1 text-danger fw-bold"><i class="bi bi-shield-exclamation"></i> Crisis Safety Support Notice</div>` + text.replace(/\n/g, "<br>");
+    } else {
+      bubble.innerHTML = `<strong class="text-primary-emphasis d-block mb-1">CareAI Companion</strong>` + text.replace(/\n/g, "<br>");
+    }
+    row.appendChild(bubble);
   }
 
-  chatContainer.appendChild(bubble);
+  chatContainer.appendChild(row);
   chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
@@ -87,12 +118,10 @@ chatForm.addEventListener("submit", function(e) {
   const text = chatInput.value.trim();
   if (!text) return;
 
-  // Append user bubble
   appendMessage("user", text);
   chatInput.value = "";
   chatInput.focus();
 
-  // Show typing
   typingIndicator.classList.remove("d-none");
   sendBtn.disabled = true;
 
@@ -102,51 +131,49 @@ chatForm.addEventListener("submit", function(e) {
       "Content-Type": "application/json",
       "X-CSRFToken": getCsrfToken()
     },
-    body: JSON.stringify({
-      message: text,
-      history: conversationHistory
-    })
+    body: JSON.stringify({ message: text, history: conversationHistory })
   })
   .then(r => r.json())
   .then(data => {
     typingIndicator.classList.add("d-none");
     sendBtn.disabled = false;
 
-    const reply = data.response || "I am here to support you.";
-    const isOverride = data.priority_override === true;
+    const reply = data.response || "I am here with you. How can I help you further?";
+    const isOverride = data.safety_override || false;
+
     appendMessage("assistant", reply, isOverride);
 
-    // Save in history
+    // Save history
     conversationHistory.push({ role: "user", content: text });
     conversationHistory.push({ role: "assistant", content: reply });
   })
   .catch(err => {
     typingIndicator.classList.add("d-none");
     sendBtn.disabled = false;
-    appendMessage("assistant", "Sorry, an error occurred while connecting to the assistant. Please try again.");
-    console.error("Chat error:", err);
+    appendMessage("assistant", "I am having difficulty connecting to the multi-agent service at this moment. Please try again shortly.");
   });
 });
 
-// Quick prompts listener
+// Quick prompts click handler
 document.querySelectorAll(".quick-prompt").forEach(btn => {
   btn.addEventListener("click", function() {
-    chatInput.value = this.innerText.replace(/^[^\w]+/, "").trim();
+    chatInput.value = this.innerText.replace(/^[^\w\s]+/, '').trim();
     chatForm.dispatchEvent(new Event("submit"));
   });
 });
 
 // Clear conversation view
 document.getElementById("clearChatBtn").addEventListener("click", function() {
-  if (confirm("Clear current chat view?")) {
-    chatContainer.innerHTML = `
+  chatContainer.innerHTML = `
+    <div class="chat-row chat-ai-row d-flex gap-2 align-items-start">
+      <img src="{{ url_for('static', filename='img/bot-avatar.svg') }}" alt="AI" width="32" height="32" class="rounded-circle mt-1 flex-shrink-0">
       <div class="chat-bubble chat-ai">
-        <strong>CareAI:</strong><br>
-        Chat refreshed. What would you like to explore or talk about?
+        <strong class="text-primary-emphasis d-block mb-1">CareAI Companion</strong>
+        Conversation cleared. How can I assist your wellbeing today?
       </div>
-    `;
-    conversationHistory = [];
-  }
+    </div>
+  `;
+  conversationHistory = [];
 });
 </script>
 {% endblock %}
