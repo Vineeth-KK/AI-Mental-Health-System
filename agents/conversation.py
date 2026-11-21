@@ -1,8 +1,9 @@
 # agents/conversation.py
 """Agent 2: Conversation Agent.
 Provides empathetic, context-aware, non-diagnostic psychological wellbeing conversation.
-Integrates directly with local Ollama LLM (llama3.2) on RTX 3070 Ti, backed by an
-advanced, intent-aware, context-sensitive multi-turn reasoning engine.
+Integrates directly with local Ollama LLM (llama3.2), backed by a versatile,
+intent-aware multi-turn reasoning engine that handles general questions, factual queries,
+academic concerns, wellbeing topics, and casual chat without clinical bias.
 """
 
 import os
@@ -14,36 +15,32 @@ from agents.state import AgentState
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """You are CareAI, an advanced, deeply perceptive, and evidence-grounded mental health companion.
+SYSTEM_PROMPT = """You are CareAI, an intelligent, empathetic conversational AI assistant and wellbeing companion.
 
 CORE BEHAVIOR & CONVERSATIONAL INTELLIGENCE:
-1. DIRECT INTENT & TARGETED ANSWERS:
-   - Answer the user's exact question or concern directly. Never substitute a real answer with a generic disclaimer or canned paragraph.
-   - If the user asks an informational or psychological question (e.g., "What is stress?", "What is the difference between anxiety and stress?", "Why am I unable to sleep properly?"), provide clear, intellectually illuminating explanations distinguishing psychological vs physiological manifestations, cognitive patterns, and situational triggers.
-   - If the user shares a personal struggle (e.g., "I feel lonely even around people", "I am overwhelmed"), validate their emotional state with genuine depth. Unpack the underlying dynamics (e.g., emotional resonance vs physical presence) so they feel truly understood.
-   - If the user asks for practical guidance or an action plan (e.g., "What should I do tonight?", "Give me a simple daily routine to reduce stress", "What can I do about it?"), provide structured, realistic, numbered or bulleted steps that can be implemented immediately.
-   - If the user engages in casual conversation or mentions feeling bored, respond with warmth, curiosity, and creative, engaging ideas without clinical or patronizing language.
+1. INTENT-DRIVEN ADAPTABILITY & NATURAL RESPONSES:
+   - Identify the user's actual intent and address their exact question directly and naturally.
+   - GENERAL & FACTUAL QUESTIONS: If the user asks about science, history, coding, food, daily life, trivia, or general knowledge (e.g. "What is photosynthesis?", "Who was Einstein?", "Can you write a Python function?", "What should I eat for lunch?"), provide an accurate, clear, engaging, and informative answer. DO NOT force therapy concepts, mental health disclaimers, or breathing exercises into general or practical questions.
+   - CASUAL CONVERSATION & GREETINGS: If the user says "Hello", "How are you?", or engages in light conversation, respond warmly, naturally, and conversationally. DO NOT assume the user is overwhelmed or suffering.
+   - ACADEMIC & PRODUCTIVITY CONCERNS: If the user asks about exams, study schedules, time management, or personal projects, provide structured, realistic, actionable strategies.
+   - EMOTIONAL & WELLBEING CONCERNS: If the user expresses stress, sadness, loneliness, anxiety, burnout, or difficulty sleeping, respond with genuine emotional warmth, psychological depth, and practical coping techniques.
+   - INFORMATIONAL PSYCHOLOGY: If the user asks conceptual questions (e.g. "What is the difference between anxiety and stress?"), explain the distinctions clearly with cognitive and physiological context.
 
-2. CONTEXTUAL CONTINUITY & MULTI-TURN MEMORY:
-   - Maintain acute situational awareness across the entire conversation history.
-   - Understand pronouns and implicit references in follow-up queries (e.g., if the user previously mentioned "I am stressed about my exams" and now asks "What can I do about it?", understand that "it" refers to exam stress and offer realistic study pacing and anxiety release).
-   - Synthesize evolving details: if the user adds "I am also unable to sleep properly" after discussing exam stress, address how performance pressure hyperarouses the nervous system at night, connecting both threads together.
-   - When the user asks "What should I do tonight?", generate an evening wind-down routine tailored specifically to their combined situation (e.g. studying cutoffs + insomnia relief).
-   - If the user pivots to an unrelated topic (e.g. asking something casual or curious), gracefully pivot with them rather than dragging old issues into the new question.
+2. CONTEXTUAL CONTINUITY & TOPIC PIVOTING:
+   - Maintain situational awareness across recent conversation history.
+   - Understand pronouns and implicit references in follow-up queries (e.g., if the user previously discussed exams and asks "What can I do about it?", connect "it" to their exams).
+   - When the user pivots to an unrelated topic (e.g., asking about cooking or science after discussing stress), PIVOT WITH THEM IMMEDIATELY. Do not drag previous distress or study topics into the new inquiry.
+   - If a question is ambiguous or broad, provide a helpful answer and ask a thoughtful, natural clarification question to help guide the discussion.
 
-3. FRESHNESS & AVOIDANCE OF REPETITION:
-   - NEVER repeat the exact same sentences, greetings, or stock phrases across turns.
-   - Avoid generic robotic disclaimers. Avoid starting every turn with "I'm sorry you're feeling that way" or "Thank you for sharing."
-   - Do NOT force the same breathing exercises into every conversation. Only introduce somatic exercises when directly relevant to acute panic, physical tension, or requested coping techniques.
+3. FRESHNESS & AUTHENTIC COMMUNICATION:
+   - Never repeat the exact same sentences, greetings, or stock phrases across turns.
+   - Avoid generic robotic disclaimers. Avoid starting turns with formulaic apologies like "I'm sorry you are feeling that way."
+   - Do NOT force breathing exercises into conversations unless directly requested or relevant to acute panic.
 
 4. ETHICAL BOUNDARIES & SAFETY:
-   - You are an academic wellbeing assistant, NOT a licensed doctor or psychotherapist.
+   - You are an academic wellbeing companion, NOT a licensed physician or psychotherapist.
    - Do NOT provide medical diagnoses or prescribe medications.
-   - If acute self-harm or suicidal ideation is detected, safety workflows handle escalation.
-
-5. COMMUNICATION STYLE:
-   - Empathetic, articulate, conversational, and natural.
-   - Use clean formatting (bold headers, bullet points) when structuring advice to make it readable and gentle on an anxious mind.
+   - If acute self-harm or suicidal ideation is detected, safety escalation protocols handle it.
 """
 
 def generate_llm_response(
@@ -53,7 +50,7 @@ def generate_llm_response(
     ollama_model: Optional[str] = None,
     ollama_host: Optional[str] = None
 ) -> str:
-    """Generates an empathetic, context-aware response via local Ollama LLM, with intelligent multi-turn fallback."""
+    """Generates an empathetic, context-aware response via local Ollama LLM, with versatile multi-turn fallback."""
     # Resolve model and host from config/env
     model = ollama_model or os.getenv("OLLAMA_MODEL", "llama3.2")
     host = ollama_host or os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
@@ -63,11 +60,11 @@ def generate_llm_response(
     if rag_context:
         snippets = [f"- [{item.get('topic', 'Guidance')}]: {item.get('text', '')}" for item in rag_context if item.get('text')]
         if snippets:
-            context_str = "\n\nRelevant Evidence-Based Knowledge Base Guidance (integrate seamlessly if relevant to user's exact query):\n" + "\n".join(snippets[:2])
+            context_str = "\n\nRelevant Evidence-Based Knowledge Base Guidance (integrate only if directly relevant to user's exact query):\n" + "\n".join(snippets[:2])
 
     system_instruction = SYSTEM_PROMPT
     if user_name:
-        system_instruction += f"\nThe user's name is {user_name}. Address them warmly and naturally as {user_name} when appropriate, without repeating it excessively."
+        system_instruction += f"\nThe user's name is {user_name}. Use their name naturally and occasionally when appropriate, never formulaically on every turn."
     if context_str:
         system_instruction += context_str
 
@@ -90,15 +87,15 @@ def generate_llm_response(
             "messages": formatted_messages,
             "stream": False,
             "options": {
-                "temperature": 0.75,
+                "temperature": 0.72,
                 "top_p": 0.9,
-                "repeat_penalty": 1.18,
+                "repeat_penalty": 1.15,
                 "repeat_last_n": 128,
-                "num_predict": 512,
+                "num_predict": 600,
                 "num_ctx": 4096
             }
         }
-        with httpx.Client(timeout=25.0) as client:
+        with httpx.Client(timeout=40.0) as client:
             resp = client.post(url, json=payload)
             if resp.status_code == 200:
                 data = resp.json()
@@ -109,7 +106,7 @@ def generate_llm_response(
             else:
                 logger.warning(f"Ollama returned status {resp.status_code}: {resp.text}")
     except Exception as e:
-        logger.info(f"Ollama inference unavailable ({e}). Using multi-turn intelligent conversational engine.")
+        logger.info(f"Ollama inference unavailable ({e}). Using versatile multi-turn conversational engine.")
 
     # Contextual, intent-aware dynamic multi-turn engine
     return _generate_intelligent_fallback(messages, rag_context, user_name)
@@ -120,12 +117,13 @@ def _generate_intelligent_fallback(
     rag_context: Optional[List[Dict[str, Any]]] = None,
     user_name: Optional[str] = None
 ) -> str:
-    """Advanced, multi-turn context-aware conversational engine.
-    Ensures non-repetitive, intent-specific, highly relevant responses when LLM is offline or on cloud containers.
+    """Versatile, intent-aware conversational engine for cloud deployments or when local LLM is offline.
+    Handles general knowledge, everyday topics, academic questions, wellbeing, follow-ups, and greetings
+    without forcing unrelated conversations into mental health templates.
     """
     if not messages:
         greeting_name = f", {user_name}" if user_name else ""
-        return f"Hello{greeting_name}! I am CareAI, your wellbeing companion. What is on your mind today?"
+        return f"Hello{greeting_name}! I am CareAI, your conversational assistant and wellbeing companion. How can I help you today?"
 
     last_user_msg = ""
     for m in reversed(messages):
@@ -134,25 +132,135 @@ def _generate_intelligent_fallback(
             break
 
     user_text = last_user_msg.lower().strip()
-    name_str = f"{user_name}, " if user_name else ""
+    clean_text = user_text.strip("?!.,'\"")
     name_clause = f", {user_name}" if user_name else ""
+    name_str = f"{user_name}, " if user_name else ""
 
     # Gather prior user & assistant topics for conversation continuity
     prior_user_msgs = [m.get("content", "").lower() for m in messages[:-1] if m.get("role") == "user"]
     prior_context = " ".join(prior_user_msgs)
 
-    # 1. Informational: Difference between stress and anxiety
+    # -------------------------------------------------------------
+    # 1. GREETINGS & CASUAL PLEASANTRIES
+    # -------------------------------------------------------------
+    casual_greetings = [
+        "hi", "hello", "hey", "good morning", "good afternoon", "good evening",
+        "hey there", "greetings", "howdy", "sup", "yo"
+    ]
+    if clean_text in casual_greetings or (len(clean_text.split()) <= 2 and any(clean_text.startswith(g) for g in casual_greetings)):
+        return (
+            f"Hello{name_clause}! It's great to connect with you today. "
+            "Whether you'd like to chat through a question, plan your day, learn something new, or simply unpack what's on your mind, I'm here. "
+            "What would you like to explore?"
+        )
+
+    if any(clean_text.startswith(q) for q in ["how are you", "how are things", "how's it going", "how is it going", "how do you do"]):
+        return (
+            f"I'm doing well, thank you for asking{name_clause}! I'm energized and ready to help you with whatever is on your mind today—whether "
+            "that's studying, practical planning, answering questions, or taking a moment to decompress. How are you feeling today?"
+        )
+
+    if any(q in clean_text for q in ["who are you", "what is your name", "what do you do", "tell me about yourself", "what are you"]):
+        return (
+            "I am CareAI, an intelligent conversational assistant and mental wellbeing companion. "
+            "I'm here to support you across everyday life: helping you break down academic or work challenges, offering evidence-based wellbeing "
+            "strategies when you're stressed, answering general questions, or simply having a thoughtful conversation. "
+            "What can I assist you with right now?"
+        )
+
+    if clean_text in ["thank you", "thanks", "thank you so much", "thanks a lot", "appreciate it"]:
+        return f"You're very welcome{name_clause}! I'm always glad to help. Feel free to ask if there's anything else you'd like to talk through or explore."
+
+    # -------------------------------------------------------------
+    # 2. GENERAL & FACTUAL QUESTIONS (Science, Tech, Food, Daily Life)
+    # -------------------------------------------------------------
+    if "photosynthesis" in user_text:
+        return (
+            f"Photosynthesis is the biological process by which green plants, algae, and certain bacteria convert sunlight into chemical energy{name_clause}.\n\n"
+            "Here is how it works fundamentally:\n"
+            "• **Light Absorption:** Chlorophyll inside plant chloroplasts captures solar energy from sunlight.\n"
+            "• **The Chemical Formula:** Plants take in carbon dioxide ($6CO_2$) from the air and water ($6H_2O$) from the soil, using sunlight to produce glucose ($C_6H_{12}O_6$) and release oxygen ($6O_2$):\n"
+            "  $$6CO_2 + 6H_2O + \\text{light} \\rightarrow C_6H_{12}O_6 + 6O_2$$\n"
+            "• **Two Stages:** The process occurs in two phases: the **Light-Dependent Reactions** (generating ATP and NADPH in the thylakoid membranes) and the **Calvin Cycle** (synthesizing sugars in the stroma).\n\n"
+            "Are you reviewing this for a biology class or just curious about plant physiology?"
+        )
+
+    if "einstein" in user_text or ("albert" in user_text and "einstein" in user_text):
+        return (
+            f"Albert Einstein (1879–1955) was a German-born theoretical physicist widely acknowledged as one of the most influential scientists of all time{name_clause}.\n\n"
+            "His major breakthroughs include:\n"
+            "• **Special Relativity (1905):** Demonstrated that the laws of physics are the same for all non-accelerating observers and that the speed of light in a vacuum is constant, culminating in the iconic mass-energy equivalence $E = mc^2$.\n"
+            "• **The Photoelectric Effect (1905):** Proved that light consists of discrete quanta (photons), a cornerstone of quantum theory that earned him the 1921 Nobel Prize in Physics.\n"
+            "• **General Relativity (1915):** Revolutionized our understanding of gravity by describing it not as a Newtonian force, but as the curvature of spacetime caused by mass and energy.\n\n"
+            "Would you like to explore any of his specific theories or his historical life?"
+        )
+
+    if any(k in user_text for k in ["leaves change color", "leaves turn", "autumn leaves"]):
+        return (
+            f"Leaves changing color in autumn is a brilliant adaptation by deciduous trees preparing for winter{name_clause}:\n\n"
+            "1. **Chlorophyll Breakdown:** During spring and summer, leaves produce abundant green chlorophyll to capture sunlight. As days shorten and temperatures cool, trees cease chlorophyll production, and the green pigment breaks down.\n"
+            "2. **Unmasking Hidden Pigments:** Carotenoids (producing vibrant yellows and oranges) are present in the leaf all along, but are masked by green chlorophyll. Once chlorophyll degrades, these pigments become visible.\n"
+            "3. **Anthocyanin Synthesis:** Cooler, sunny autumn days trigger the synthesis of anthocyanins (producing reds and purples) to protect the leaf from sun damage as it transports final sugars back into the branches.\n\n"
+            "It is essentially nature's recycling process before winter dormancy."
+        )
+
+    if "python" in user_text and any(k in user_text for k in ["reverse", "string", "function", "code"]):
+        return (
+            f"In Python, reversing a string can be done cleanly in several ways{name_clause}:\n\n"
+            "```python\n"
+            "# 1. Slicing (Fastest & most idiomatic)\n"
+            "def reverse_string(s: str) -> str:\n"
+            "    return s[::-1]\n\n"
+            "# 2. Using reversed() and join()\n"
+            "def reverse_string_builtin(s: str) -> str:\n"
+            "    return ''.join(reversed(s))\n"
+            "```\n\n"
+            "The slicing method `s[::-1]` runs in $\\mathcal{O}(n)$ time and creates a new reversed string. Is there a specific algorithm or problem you're working on?"
+        )
+
+    if any(k in user_text for k in ["what should i eat", "lunch", "dinner", "healthy meal", "what to eat"]):
+        return (
+            f"Here are a few quick, nutritious, and satisfying ideas depending on what you have on hand{name_clause}:\n\n"
+            "• **Quick & Warm:** A wholesome grain bowl with quinoa or brown rice, roasted or sauteed veggies, and a protein (tofu, chicken, chickpeas, or an egg) with a tahini or soy-ginger drizzle.\n"
+            "• **Light & Fresh:** Mediterranean salad with mixed greens, cucumbers, cherry tomatoes, olives, feta, and olive oil with whole wheat pita.\n"
+            "• **Cozy Comfort:** A warm vegetable or lentil soup paired with toasted sourdough bread.\n"
+            "• **Quick Energy:** A balanced whole-grain wrap with avocado, hummus, and crisp vegetables.\n\n"
+            "Are you looking for something fast in under 10 minutes, or cooking with specific ingredients in your kitchen?"
+        )
+
+    # -------------------------------------------------------------
+    # 3. ACADEMIC & STUDY PLANNING
+    # -------------------------------------------------------------
+    if ("biology" in user_text or "physics" in user_text or "chemistry" in user_text or "math" in user_text) and (
+        any(k in user_text for k in ["study", "schedule", "plan", "review", "what about", "how about"]) or
+        any(k in prior_context for k in ["study", "schedule", "plan", "review"])
+    ):
+        subject = "physics" if "physics" in user_text else ("chemistry" if "chemistry" in user_text else ("math" if "math" in user_text else "biology"))
+        other = "biology" if subject == "physics" else "physics"
+        return (
+            f"Let's put together a realistic, structured study plan for {subject.capitalize()}{name_clause}:\n\n"
+            "1. **Core Concept Mastery (60 mins):** Review fundamental mechanisms (e.g. formulas/derivations for physics, or pathways/diagrams for biology). Focus on *active recall* by summarizing without looking.\n"
+            "2. **Targeted Practice Problems (45 mins):** Complete 4–6 targeted problem sets or flashcard runs. Practice is what consolidates comprehension into exam recall.\n"
+            "3. **Error Log & Gap Fill (15 mins):** Note down any misconception or equation you missed so you can review it first tomorrow.\n"
+            "4. **Balanced Pacing:** If you're balancing multiple subjects, alternate them across study blocks to avoid cognitive fatigue.\n\n"
+            f"What specific topics in {subject} are coming up on your next test?"
+        )
+
+    # -------------------------------------------------------------
+    # 4. WELLBEING PSYCHOEDUCATION
+    # -------------------------------------------------------------
+    # Difference between stress and anxiety
     if ("difference" in user_text and ("stress" in user_text and "anxiety" in user_text)) or \
        ("distinguish" in user_text and "stress" in user_text):
         return (
             f"Understanding the distinction between stress and anxiety is a foundational step in managing emotional health{name_clause}:\n\n"
-            "• **Stress** is primarily an adaptive reaction to an external demand, deadline, or life event (e.g. an upcoming examination, heavy workload, or interpersonal conflict). When the external stressor passes, stress naturally subsides. It physically manifests as muscle tension, elevated heart rate, and fatigue.\n\n"
+            "• **Stress** is primarily an adaptive reaction to an external demand, deadline, or life event (such as an upcoming exam, heavy workload, or interpersonal conflict). When the external stressor is resolved, stress naturally subsides. It physically manifests as muscle tension, elevated heart rate, and fatigue.\n\n"
             "• **Anxiety**, by contrast, is an internal, persistent state of apprehension that can linger even in the absence of an immediate external threat. It is characterized by recurring 'what-if' thoughts, anticipatory dread, and cognitive vigilance.\n\n"
             "In summary: **Stress is your body's response to a present challenge; anxiety is your mind's anticipation of future uncertainty.**\n\n"
             "Which of these two experiences feels closer to what you have been noticing in yourself recently?"
         )
 
-    # 2. Informational: What is stress? / Define stress
+    # What is stress?
     if user_text in ["what is stress?", "what is stress", "define stress", "explain stress", "what does stress mean", "tell me about stress"] or (
         "what" in user_text and "stress" in user_text and len(user_text.split()) <= 6 and "routine" not in user_text and "reduce" not in user_text
     ):
@@ -165,7 +273,7 @@ def _generate_intelligent_fallback(
             "Is there a particular area of your life—such as academics, work, or relationships—where you are feeling this pressure most right now?"
         )
 
-    # 3. Informational: What is anxiety?
+    # What is anxiety?
     if user_text in ["what is anxiety?", "what is anxiety", "define anxiety", "explain anxiety"] or (
         "what" in user_text and "anxiety" in user_text and len(user_text.split()) <= 5
     ):
@@ -176,7 +284,9 @@ def _generate_intelligent_fallback(
             "Are you noticing anxiety as a physical sensation in your body, or more as racing thoughts in your mind?"
         )
 
-    # 4. Contextual Multi-Turn: "What should I do tonight?"
+    # -------------------------------------------------------------
+    # 5. MULTI-TURN CONTEXT SYNTHESIS ("What should I do tonight?")
+    # -------------------------------------------------------------
     if "tonight" in user_text or ("what should i do" in user_text and "night" in user_text) or ("plan for tonight" in user_text):
         has_exam_context = any(k in prior_context for k in ["exam", "test", "study", "syllabus", "finals"])
         has_sleep_context = any(k in prior_context for k in ["sleep", "awake", "insomnia", "sleepless", "tired"])
@@ -207,7 +317,9 @@ def _generate_intelligent_fallback(
                 "Take this evening one gentle hour at a time. What would feel most comforting right now?"
             )
 
-    # 5. Contextual Multi-Turn: "What can I do about it?" / "How can I handle it?"
+    # -------------------------------------------------------------
+    # 6. CONTEXTUAL FOLLOW-UP: "What can I do about it?" / "How to handle it?"
+    # -------------------------------------------------------------
     if any(q in user_text for q in ["what can i do about it", "what can i do", "what should i do", "how do i handle it", "how to cope", "what can i do now"]) and len(user_text.split()) <= 8:
         if any(k in prior_context for k in ["exam", "test", "study", "syllabus", "finals"]):
             return (
@@ -236,13 +348,15 @@ def _generate_intelligent_fallback(
         else:
             return (
                 f"Here are three grounded steps you can take right now, {name_str}:\n\n"
-                "1. **Pause and Breathe:** Take three slow, diaphragmatic breaths—inhaling for 4 seconds, and exhaling smoothly for 6 seconds.\n"
-                "2. **Identify the Single Next Action:** Don't attempt to solve everything today. What is the single smallest task that would give you some relief in the next 20 minutes?\n"
-                "3. **Release Self-Blame:** Acknowledge that feeling overwhelmed is a natural response to high demands. Give yourself permission to slow down.\n\n"
+                "1. **Identify the Single Next Action:** Don't attempt to solve everything today. What is the single smallest task that would give you some relief in the next 20 minutes?\n"
+                "2. **Pause and Reset:** Take three slow, diaphragmatic breaths—inhaling for 4 seconds, and exhaling smoothly for 6 seconds.\n"
+                "3. **Release Self-Blame:** Acknowledge that high demands can feel heavy. Give yourself permission to take things step by step.\n\n"
                 "What is the most pressing part of what you are facing right now?"
             )
 
-    # 6. Sleep-related questions: "Why am I unable to sleep properly?"
+    # -------------------------------------------------------------
+    # 7. SLEEP QUESTIONS
+    # -------------------------------------------------------------
     if any(w in user_text for w in ["sleep", "insomnia", "sleepless", "awake", "can't sleep", "cant sleep", "unable to sleep", "falling asleep"]):
         has_exam = any(k in prior_context for k in ["exam", "test", "study", "syllabus"])
         connection_note = f", especially alongside the academic demands on your mind, {name_str}" if has_exam else f", {name_str}"
@@ -258,7 +372,9 @@ def _generate_intelligent_fallback(
             "Are you having trouble falling asleep initially, or are you waking up in the early morning hours?"
         )
 
-    # 7. Personal Concern: Loneliness in a crowd
+    # -------------------------------------------------------------
+    # 8. PERSONAL CONCERNS & EMOTIONAL SUPPORT
+    # -------------------------------------------------------------
     if any(w in user_text for w in ["lonely", "loneliness", "isolated", "disconnect", "around people", "nobody understands", "no friends"]):
         return (
             f"Feeling lonely even when surrounded by others is a deeply poignant and surprisingly common emotional experience{name_clause}.\n\n"
@@ -269,7 +385,18 @@ def _generate_intelligent_fallback(
             "When you are around people right now, what feels most challenging—feeling misunderstood, or feeling like you have to pretend to be fine?"
         )
 
-    # 8. Practical Daily Routine Request
+    # Sadness / Feeling down
+    if any(w in user_text for w in ["sad", "feeling sad", "crying", "unhappy", "down", "gloomy", "heartbroken"]):
+        return (
+            f"I hear you{name_clause}, and I'm really glad you reached out. It takes self-awareness to acknowledge when you're feeling down.\n\n"
+            "Sadness is a heavy emotion, and sometimes the most helpful thing is not trying to immediately 'fix' it, but simply giving yourself permission to feel it without self-judgment. "
+            "Our energy naturally ebbs and flows, and periods of sadness often signal that our minds and hearts need gentle rest and compassion.\n\n"
+            "Would you like to talk about what brought this feeling on, or would you prefer a peaceful distraction right now?"
+        )
+
+    # -------------------------------------------------------------
+    # 9. PRACTICAL ROUTINES & HABITS
+    # -------------------------------------------------------------
     if any(w in user_text for w in ["routine", "daily routine", "schedule", "daily habits", "plan my day", "habit"]):
         return (
             f"Here is a balanced, evidence-based daily wellbeing routine designed to reduce chronic stress without feeling overwhelming{name_clause}:\n\n"
@@ -285,7 +412,9 @@ def _generate_intelligent_fallback(
             "Which part of this routine feels like the easiest, most accessible place for you to begin tomorrow?"
         )
 
-    # 9. Academic / Exam Stress
+    # -------------------------------------------------------------
+    # 10. ACADEMIC / EXAM CONCERNS
+    # -------------------------------------------------------------
     if any(w in user_text for w in ["exam", "examination", "studying", "syllabus", "test", "finals", "grades", "academic"]):
         return (
             f"Exam stress can feel all-consuming{name_clause}, and it is entirely valid to feel the weight of performance pressure.\n\n"
@@ -297,7 +426,9 @@ def _generate_intelligent_fallback(
             "How many days do you have until your next exam, and what subject is feeling most daunting?"
         )
 
-    # 10. Casual Conversation / Boredom
+    # -------------------------------------------------------------
+    # 11. CASUAL CONVERSATION / BOREDOM
+    # -------------------------------------------------------------
     if any(w in user_text for w in ["bored", "boredom", "nothing to do", "entertain me", "what can i do when i feel bored"]):
         return (
             f"Boredom is actually a fascinating cognitive signal{name_clause}! It is your brain's way of telling you that you have spare cognitive capacity and are craving meaningful stimulation.\n\n"
@@ -309,21 +440,25 @@ def _generate_intelligent_fallback(
             "Do you feel like engaging in something creative, something physical, or something relaxing?"
         )
 
-    # 11. General Emotional Distress / Overwhelm (Ground with RAG if provided)
+    # -------------------------------------------------------------
+    # 12. GENERAL INQUIRY / THOUGHTFUL ASSISTANT RESPONSE
+    # -------------------------------------------------------------
+    # Ground with RAG if provided and substantive
     rag_snippet_str = ""
     if rag_context:
         for item in rag_context:
             t = item.get("text", "")
             if len(t) > 50:
-                rag_snippet_str = f"\n\n*Evidence-based wellbeing insight:* {t[:220]}..."
+                rag_snippet_str = f"\n\n*Relevant insight:* {t[:220]}..."
                 break
 
     return (
-        f"Thank you for sharing that with me{name_clause}. Navigating difficult emotions takes courage, and it is important to remember that whatever you are experiencing right now is valid.\n\n"
-        "When thoughts feel turbulent or heavy, simplifying your immediate horizon is the kindest step:\n"
-        "• Take a slow breath, release any physical tension in your forehead and shoulders, and plant both feet firmly on the ground.\n"
-        "• Ask yourself: *What is one small thing that would bring 5% more comfort or clarity to my next hour?*{rag_snippet_str}\n\n"
-        "I am here beside you. Would you like to unpack what is feeling heaviest, or would you prefer a practical strategy to help you center yourself?"
+        f"That is an interesting topic to bring up{name_clause}! "
+        f"There are several angles we can explore regarding '{last_user_msg.strip()[:100]}':\n\n"
+        "• We can unpack the core concepts and practical details behind it.\n"
+        "• We can look at how to apply it step-by-step or integrate it into your daily flow.\n"
+        "• Or we can discuss any specific goals or questions you have related to it.{rag_snippet_str}\n\n"
+        "Could you tell me a bit more about what you're hoping to achieve or what aspect you'd like to focus on most?"
     )
 
 

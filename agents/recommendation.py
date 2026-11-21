@@ -100,19 +100,34 @@ WELLBEING_EXERCISES = {
     ]
 }
 
+WELLBEING_INTENT_KEYWORDS = {
+    "anxiety", "anxious", "panic", "fear", "racing", "grounding", "phobia", "nervous", "worry", "worries",
+    "stress", "stressed", "stressful", "overwhelm", "overwhelmed", "burnout", "pressure", "exam", "exams",
+    "test", "tests", "syllabus", "finals", "grades",
+    "sleep", "insomnia", "sleepless", "bedtime", "awake", "nightmare", "tired", "exhausted", "fatigue",
+    "lonely", "loneliness", "isolated", "isolation", "disconnect", "alone",
+    "sad", "sadness", "depressed", "depression", "hopeless", "unmotivated", "crying", "grief", "miserable",
+    "routine", "coping", "mindful", "mindfulness", "meditation", "calm", "relax", "relaxation", "breathing",
+    "mental health", "therapy", "wellbeing", "emotions", "distress"
+}
+
 def generate_recommendations(
     distress_level: Optional[str] = None,
     current_checkin: Optional[Dict[str, Any]] = None,
     journal_text: Optional[str] = None,
     messages: Optional[List[Dict[str, str]]] = None
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-    """Generates structured exercise recommendations and retrieves RAG educational context."""
-    # Build search query from distress indicators or user chat message
+    """Generates structured exercise recommendations and retrieves RAG educational context.
+    Strictly avoids polluting general, technical, academic, or casual questions with unrelated
+    mental health exercises or knowledge base snippets.
+    """
     last_user_msg = ""
     if messages:
         last_user_msg = next((m.get("content", "") for m in reversed(messages) if m.get("role") == "user"), "")
 
     is_casual_chat = False
+    has_wellbeing_intent = False
+
     if last_user_msg:
         lowered = last_user_msg.lower().strip("?!.,")
         casual_greetings = [
@@ -122,11 +137,14 @@ def generate_recommendations(
         if any(lowered == g or lowered.startswith(g + " ") for g in casual_greetings) and len(lowered.split()) <= 4:
             is_casual_chat = True
 
+        tokens = set(lowered.split())
+        has_wellbeing_intent = any(k in lowered for k in WELLBEING_INTENT_KEYWORDS)
+
     # Determine RAG search query based on context type
     if messages:
-        # Chat mode: driven strictly by user's explicit question, never polluted by historical check-in scores
-        if not is_casual_chat and last_user_msg:
-            # Query knowledge base for informational, coping, and psychological guidance
+        # Chat mode: ONLY query RAG if the user's query expresses actual wellbeing/mental-health intent
+        # General, factual, coding, scientific, or casual queries must never pull clinical RAG snippets
+        if has_wellbeing_intent and not is_casual_chat and last_user_msg:
             search_query = last_user_msg[:250].strip()
         else:
             search_query = ""
@@ -154,47 +172,50 @@ def generate_recommendations(
     rag_snippets = []
     if search_query and not is_casual_chat:
         raw_snippets = rag_service.query(search_query, n_results=3)
-        # Quality relevance filter: keep snippets with sufficient relevance and topical relevance
+        # Quality relevance filter: keep snippets with high relevance and topical overlap
         q_words = set(w for w in search_query.lower().split() if len(w) > 3)
         for s in raw_snippets:
             rel = s.get("relevance_score", 0.0)
             s_text = s.get("text", "").lower()
             s_words = set(w for w in s_text.split() if len(w) > 3)
             overlap = len(q_words.intersection(s_words))
-            # Include snippet if semantically close or shares topical vocabulary
-            if rel >= 0.50 and (overlap > 0 or rel >= 0.70):
+            # Include snippet only if semantically close AND shares topical vocabulary
+            if rel >= 0.55 and (overlap > 0 or rel >= 0.75):
                 rag_snippets.append(s)
 
     # Select targeted exercises
     exercises = []
-    # In chat mode, match exercises directly to the user's conversational intent if expressed
-    if messages and last_user_msg:
-        lum = last_user_msg.lower()
-        if any(w in lum for w in ["anxious", "anxiety", "panic", "grounding", "fear", "racing"]):
-            exercises.extend(WELLBEING_EXERCISES["anxiety"])
-        if any(w in lum for w in ["stress", "overwhelm", "pressure", "burnout", "routine", "exam"]):
-            exercises.extend(WELLBEING_EXERCISES["stress"])
-        if any(w in lum for w in ["sleep", "insomnia", "bedtime", "awake", "tonight", "rest"]):
-            exercises.extend(WELLBEING_EXERCISES["sleep"])
-        if any(w in lum for w in ["lonely", "loneliness", "isolated", "disconnect", "alone"]):
-            exercises.extend(WELLBEING_EXERCISES["isolation"])
-        if any(w in lum for w in ["sad", "depressed", "hopeless", "unmotivated", "bored"]):
-            exercises.extend(WELLBEING_EXERCISES["mood"])
+    if messages:
+        # In chat mode: ONLY match exercises if the user has an active wellbeing concern
+        if last_user_msg and has_wellbeing_intent:
+            lum = last_user_msg.lower()
+            if any(w in lum for w in ["anxious", "anxiety", "panic", "grounding", "fear", "racing"]):
+                exercises.extend(WELLBEING_EXERCISES["anxiety"])
+            if any(w in lum for w in ["stress", "overwhelm", "pressure", "burnout", "routine", "exam", "test"]):
+                exercises.extend(WELLBEING_EXERCISES["stress"])
+            if any(w in lum for w in ["sleep", "insomnia", "bedtime", "awake", "tonight", "rest"]):
+                exercises.extend(WELLBEING_EXERCISES["sleep"])
+            if any(w in lum for w in ["lonely", "loneliness", "isolated", "disconnect", "alone"]):
+                exercises.extend(WELLBEING_EXERCISES["isolation"])
+            if any(w in lum for w in ["sad", "depressed", "hopeless", "unmotivated"]):
+                exercises.extend(WELLBEING_EXERCISES["mood"])
+        # For general, casual, or non-mental-health chat, keep exercises EMPTY
+    else:
+        # Checkin assessment or journal mode: support with exercises
+        if current_checkin:
+            if current_checkin.get("anxiety", 0) >= 6:
+                exercises.extend(WELLBEING_EXERCISES["anxiety"])
+            if current_checkin.get("stress", 0) >= 6:
+                exercises.extend(WELLBEING_EXERCISES["stress"])
+            if current_checkin.get("sleep_quality", 10) <= 4:
+                exercises.extend(WELLBEING_EXERCISES["sleep"])
+            if current_checkin.get("isolation_score", 0) >= 6:
+                exercises.extend(WELLBEING_EXERCISES["isolation"])
+            if current_checkin.get("mood", 10) <= 4:
+                exercises.extend(WELLBEING_EXERCISES["mood"])
 
-    if not exercises and current_checkin:
-        if current_checkin.get("anxiety", 0) >= 6:
-            exercises.extend(WELLBEING_EXERCISES["anxiety"])
-        if current_checkin.get("stress", 0) >= 6:
-            exercises.extend(WELLBEING_EXERCISES["stress"])
-        if current_checkin.get("sleep_quality", 10) <= 4:
-            exercises.extend(WELLBEING_EXERCISES["sleep"])
-        if current_checkin.get("isolation_score", 0) >= 6:
-            exercises.extend(WELLBEING_EXERCISES["isolation"])
-        if current_checkin.get("mood", 10) <= 4:
-            exercises.extend(WELLBEING_EXERCISES["mood"])
-
-    if not exercises:
-        exercises.extend(WELLBEING_EXERCISES["general"])
+        if not exercises:
+            exercises.extend(WELLBEING_EXERCISES["general"])
 
     # Deduplicate by title
     seen = set()
