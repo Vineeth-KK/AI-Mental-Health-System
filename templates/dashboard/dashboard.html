@@ -85,13 +85,16 @@
         {% elif trend_data.trend == 'worsening' %}
           <span class="fs-4">📈</span>
           <span class="fw-bold fs-5 text-danger">Worsening</span>
+        {% elif trend_data.trend == 'insufficient_data' or trend_data.status == 'insufficient_data' or total_checkins < 3 %}
+          <span class="fs-4">ℹ️</span>
+          <span class="fw-bold fs-5 text-secondary">Insufficient Data</span>
         {% else %}
           <span class="fs-4">➡️</span>
           <span class="fw-bold fs-5 text-warning">Stable</span>
         {% endif %}
       </div>
       <p class="text-muted small mb-0">
-        {{ trend_data.summary[:55] }}...
+        {{ trend_data.summary[:85] }}{% if trend_data.summary|length > 85 %}...{% endif %}
       </p>
     </div>
   </div>

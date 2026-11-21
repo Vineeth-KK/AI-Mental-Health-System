@@ -123,11 +123,29 @@
 
     <!-- Multi-Agent Evaluation Feedback Card (Shown after submit) -->
     <div id="resultCard" class="card p-4 mb-4 d-none">
-      <div class="d-flex align-items-center gap-2 mb-3">
-        <img src="{{ url_for('static', filename='img/bot-avatar.svg') }}" alt="CareAI" width="36" height="36" class="rounded-circle">
-        <h4 class="fw-bold mb-0 text-white">Multi-Agent AI Evaluation</h4>
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <img src="{{ url_for('static', filename='img/bot-avatar.svg') }}" alt="CareAI" width="36" height="36" class="rounded-circle">
+          <div>
+            <h4 class="fw-bold mb-0 text-white">Multi-Agent AI Evaluation</h4>
+            <span class="text-muted small">Real-time LangGraph multi-agent clinical coordination</span>
+          </div>
+        </div>
+        <div id="evalStatusBadge">
+          <span class="badge bg-success bg-opacity-25 text-success rounded-pill px-3 py-1">
+            <i class="bi bi-check-circle-fill me-1"></i>Multi-Agent Coordinated
+          </span>
+        </div>
       </div>
       
+      <!-- Multi-Agent Execution Trace -->
+      <div class="mb-4">
+        <span class="text-muted small d-block mb-2 text-uppercase fw-semibold" style="letter-spacing: 0.5px; font-size: 0.75rem;">
+          <i class="bi bi-diagram-3 me-1 text-info"></i>Agent Pipeline Contributions & Verification
+        </span>
+        <div id="agentPipelineContainer" class="d-flex flex-column gap-2"></div>
+      </div>
+
       <div id="safetyBanner" class="alert alert-danger d-none mb-3 border-danger rounded-4">
         <h5 class="alert-heading fw-bold d-flex align-items-center gap-2">
           <img src="{{ url_for('static', filename='img/support-icon.svg') }}" alt="Support" width="28" height="28">
@@ -136,11 +154,18 @@
         <p id="safetyText" class="mb-0 small"></p>
       </div>
 
-      <div class="p-3 rounded-4 mb-3" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border);">
-        <p id="agentResponse" class="mb-0 text-light" style="line-height: 1.65;"></p>
+      <div class="mb-4">
+        <span class="text-muted small d-block mb-2 text-uppercase fw-semibold" style="letter-spacing: 0.5px; font-size: 0.75rem;">
+          <i class="bi bi-chat-quote me-1" style="color: var(--accent-warm);"></i>Supportive AI Synthesis Guidance
+        </span>
+        <div class="p-3 rounded-4" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border);">
+          <p id="agentResponse" class="mb-0 text-light" style="line-height: 1.65;"></p>
+        </div>
       </div>
 
-      <h6 class="fw-bold text-muted small text-uppercase mb-2 tracking-wider">Recommended Wellbeing Exercises</h6>
+      <h6 class="fw-bold text-muted small text-uppercase mb-2 tracking-wider">
+        <i class="bi bi-heart-pulse me-1 text-warning"></i>Recommended Wellbeing Exercises
+      </h6>
       <div id="recommendationsList" class="d-flex flex-column gap-2 mb-3"></div>
 
       <div class="text-end">
@@ -329,25 +354,99 @@ document.getElementById("checkinForm").addEventListener("submit", function(e) {
     card.classList.remove("d-none");
     document.getElementById("agentResponse").innerText = data.response || "Assessment processed successfully.";
 
+    // 1. Render Multi-Agent Execution Pipeline Trace
+    const pipelineContainer = document.getElementById("agentPipelineContainer");
+    const evalBadge = document.getElementById("evalStatusBadge");
+    if (data.multi_agent_evaluation) {
+      const evalData = data.multi_agent_evaluation;
+      const total = evalData.total_agents || 5;
+      const successful = evalData.successful_agents || total;
+      evalBadge.innerHTML = `
+        <span class="badge bg-success bg-opacity-25 text-success rounded-pill px-3 py-1">
+          <i class="bi bi-check-circle-fill me-1"></i>${successful}/${total} Agents Verified
+        </span>
+      `;
+
+      if (evalData.trace && evalData.trace.length > 0) {
+        pipelineContainer.innerHTML = evalData.trace.map((t, idx) => `
+          <div class="p-3 rounded-4 d-flex align-items-start gap-3" style="background: rgba(255, 255, 255, 0.025); border: 1px solid var(--card-border);">
+            <div class="p-2 rounded-circle mt-1" style="background: rgba(11, 132, 254, 0.12); color: var(--accent-blue);">
+              <i class="bi bi-cpu-fill" style="font-size: 0.9rem;"></i>
+            </div>
+            <div class="flex-grow-1">
+              <div class="d-flex align-items-center justify-content-between mb-1">
+                <span class="fw-bold text-white small">${idx + 1}. ${escapeHtml(t.agent)}</span>
+                <span class="badge bg-success bg-opacity-25 text-success rounded-pill px-2 py-1" style="font-size: 0.7rem; text-transform: uppercase;">
+                  ${escapeHtml(t.status)}
+                </span>
+              </div>
+              <p class="text-muted small mb-0" style="line-height: 1.55; font-size: 0.82rem;">${escapeHtml(t.contribution)}</p>
+            </div>
+          </div>
+        `).join("");
+      }
+    }
+
+    // 2. Safety Concern Banner
     const safetyBanner = document.getElementById("safetyBanner");
-    if (data.safety_flag) {
+    const isOverride = data.priority_override || (data.safety_alert && data.safety_alert.is_urgent);
+    if (isOverride) {
       safetyBanner.classList.remove("d-none");
-      document.getElementById("safetyText").innerText = data.safety_reason || "Safety check triggered alert guidance.";
+      const reason = (data.safety_alert && data.safety_alert.flag_reason) || "Safety check triggered priority guidance.";
+      document.getElementById("safetyText").innerText = reason;
     } else {
       safetyBanner.classList.add("d-none");
     }
 
+    // 3. Recommended Wellbeing Exercises (Proper Object Field Extraction)
     const recsList = document.getElementById("recommendationsList");
     recsList.innerHTML = "";
-    if (data.recommendations && data.recommendations.length > 0) {
-      data.recommendations.forEach(r => {
+    if (data.recommendations && Array.isArray(data.recommendations) && data.recommendations.length > 0) {
+      data.recommendations.forEach((r, idx) => {
         const item = document.createElement("div");
         item.className = "p-3 rounded-4 small text-light";
         item.style.background = "rgba(255, 255, 255, 0.03)";
         item.style.border = "1px solid var(--card-border)";
-        item.innerHTML = `<strong class="text-warning me-1">•</strong> ${r}`;
+
+        let title = "";
+        let description = "";
+        let category = "";
+        let duration = "";
+        let benefit = "";
+
+        if (typeof r === "object" && r !== null) {
+          title = r.title || r.name || `Exercise ${idx + 1}`;
+          description = r.steps || r.description || "";
+          benefit = r.benefit || "";
+          category = r.category || "";
+          duration = r.duration || "";
+        } else if (typeof r === "string") {
+          title = `Exercise ${idx + 1}`;
+          description = r;
+        }
+
+        let badgeHtml = "";
+        if (category || duration) {
+          const metaParts = [category, duration].filter(Boolean).map(escapeHtml).join(" &bull; ");
+          badgeHtml = `<span class="badge bg-secondary bg-opacity-25 text-warning rounded-pill px-2 py-1 ms-2" style="font-size: 0.72rem;">${metaParts}</span>`;
+        }
+
+        item.innerHTML = `
+          <div class="d-flex align-items-center justify-content-between mb-1">
+            <span class="fw-bold text-white fs-6">${idx + 1}. ${escapeHtml(title)}</span>
+            ${badgeHtml}
+          </div>
+          ${description ? `<p class="text-light opacity-90 small mb-1" style="line-height: 1.6;">${escapeHtml(description)}</p>` : ""}
+          ${benefit ? `<div class="text-muted small fst-italic" style="font-size: 0.75rem;"><strong class="text-info fw-semibold">Why it helps:</strong> ${escapeHtml(benefit)}</div>` : ""}
+        `;
         recsList.appendChild(item);
       });
+    } else {
+      recsList.innerHTML = `
+        <div class="p-3 rounded-4 small text-muted text-center" style="background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--card-border);">
+          <i class="bi bi-info-circle me-1 text-info"></i> No targeted coping exercises required at this time. Continue maintaining your balanced wellbeing routine.
+        </div>
+      `;
     }
 
     card.scrollIntoView({ behavior: "smooth" });
@@ -358,5 +457,15 @@ document.getElementById("checkinForm").addEventListener("submit", function(e) {
     alert("Error submitting check-in: " + err);
   });
 });
+
+function escapeHtml(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 </script>
 {% endblock %}

@@ -59,13 +59,43 @@ WELLBEING_EXERCISES = {
             "benefit": "Breaks the isolation loop with zero social pressure."
         }
     ],
+    "mood": [
+        {
+            "title": "Behavioral Activation & Micro-Movement",
+            "category": "Mood Support",
+            "duration": "10 minutes",
+            "steps": "Choose one small, low-effort positive action (e.g. stepping outside into daylight, gentle stretching, or making a warm cup of herbal tea) and engage with it fully.",
+            "benefit": "Gently breaks cognitive inertia and stimulates natural dopamine without overwhelming your emotional energy."
+        },
+        {
+            "title": "Mindful Self-Compassion Break",
+            "category": "Emotional Wellbeing",
+            "duration": "5 minutes",
+            "steps": "Place a hand gently over your chest, acknowledge that difficult feelings are a normal part of life, and offer yourself words of patience and kindness.",
+            "benefit": "Calms inner self-criticism and soothes emotional fatigue."
+        }
+    ],
     "general": [
+        {
+            "title": "Deep Breathing & Body Reset",
+            "category": "Daily Relaxation",
+            "duration": "3 minutes",
+            "steps": "Practice slow nasal breathing for 3 minutes to settle your mind and reset physical tension.",
+            "benefit": "Promotes parasympathetic balance and mental clarity."
+        },
         {
             "title": "Reflective Gratitude Journaling",
             "category": "Emotional Wellbeing",
             "duration": "5 minutes",
             "steps": "Write down 3 specific things that brought you comfort, peace, or relief today, no matter how small.",
             "benefit": "Balances the brain's natural negativity bias."
+        },
+        {
+            "title": "Mindful Walking Observation",
+            "category": "Mindfulness",
+            "duration": "10 minutes",
+            "steps": "Take a short walk and pay gentle attention to your physical surroundings: notice 3 distinct colors and ambient sounds.",
+            "benefit": "Grounds awareness in immediate reality and interrupts rumination."
         }
     ]
 }
@@ -130,10 +160,11 @@ def generate_recommendations(
             exercises.extend(WELLBEING_EXERCISES["sleep"])
         if current_checkin.get("isolation_score", 0) >= 6:
             exercises.extend(WELLBEING_EXERCISES["isolation"])
+        if current_checkin.get("mood", 10) <= 4:
+            exercises.extend(WELLBEING_EXERCISES["mood"])
 
     if not exercises:
         exercises.extend(WELLBEING_EXERCISES["general"])
-        exercises.append(WELLBEING_EXERCISES["anxiety"][1])
 
     # Deduplicate by title
     seen = set()

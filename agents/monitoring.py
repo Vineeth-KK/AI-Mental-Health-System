@@ -34,16 +34,33 @@ def analyze_trends(
                 }
         return {
             "status": "insufficient_data",
-            "trend": "stable",
-            "summary": "No historical check-in data recorded yet.",
+            "trend": "insufficient_data",
+            "summary": "At least 3 daily check-ins are required to establish a reliable trend trajectory.",
             "rolling_averages": {},
             "data_points_count": 0,
             "conversational_distress": conv_summary
         }
 
+    # Ensure chronological sorting by timestamp or id
+    def _sort_key(c):
+        ts = c.get("timestamp")
+        if isinstance(ts, datetime):
+            return ts.timestamp()
+        if isinstance(ts, str) and ts:
+            try:
+                return datetime.fromisoformat(ts.replace("Z", "+00:00")).timestamp()
+            except Exception:
+                pass
+        return float(c.get("id") or 0)
+
+    try:
+        sorted_checkins = sorted(checkins, key=_sort_key)
+    except Exception:
+        sorted_checkins = list(checkins)
+
     # Ensure checkins have calculated distress scores
     processed = []
-    for c in checkins:
+    for c in sorted_checkins:
         score = c.get("distress_score")
         if score is None:
             m = c.get("mood", 5)
@@ -85,29 +102,38 @@ def analyze_trends(
         "distress_score_30d": round(avg_30, 3)
     }
 
-    # Linear regression slope if at least 2 data points
-    if count >= 2:
+    # Linear regression slope and trajectory evaluation
+    # Requires at least 3 data points to establish a genuine longitudinal trajectory
+    if count >= 3:
         x = np.arange(count)
         y = np.array(scores)
         slope, _ = np.polyfit(x, y, 1)
         slope = float(slope)
+
+        # Net displacement between early points and recent points
+        half = max(1, count // 2)
+        early_mean = float(np.mean(scores[:half]))
+        recent_mean = float(np.mean(scores[-half:]))
+        net_delta = recent_mean - early_mean
         
-        # In distress score: higher is worse.
-        # Negative slope means distress is decreasing -> improving
-        # Positive slope means distress is increasing -> worsening
-        if slope < -0.015:
+        # In distress score: higher is worse (0.0=best, 1.0=critical).
+        # Negative slope & negative delta means distress is decreasing -> improving
+        # Positive slope & positive delta means distress is increasing -> worsening
+        if (slope <= -0.02 and net_delta <= -0.04) or (slope <= -0.035):
             trend = "improving"
             insight = "Your distress levels show a steady downward trend over recent entries. Well done on taking positive steps!"
-        elif slope > 0.015:
+        elif (slope >= 0.02 and net_delta >= 0.04) or (slope >= 0.035):
             trend = "worsening"
             insight = "Your indicators show an upward creep in stress or anxiety recently. Consider exploring the suggested calming activities."
         else:
             trend = "stable"
-            insight = "Your mental wellbeing indicators have been relatively steady over recent entries."
+            insight = "Your mental wellbeing indicators have been relatively steady and balanced across recent entries."
+        status = "success"
     else:
         slope = 0.0
-        trend = "stable"
-        insight = "Initial check-in logged. Regular daily check-ins will help identify meaningful personal patterns."
+        trend = "insufficient_data"
+        status = "insufficient_data"
+        insight = f"Logged {count} check-in{'s' if count != 1 else ''}. At least 3 daily check-ins are required to establish a meaningful personal trajectory."
 
     # Conversational distress synthesis if signals present
     conv_distress = None
@@ -126,7 +152,7 @@ def analyze_trends(
             }
 
     return {
-        "status": "success",
+        "status": status,
         "trend": trend,
         "slope": round(slope, 4),
         "current_score": round(current_score, 3),

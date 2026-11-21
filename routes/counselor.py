@@ -130,7 +130,7 @@ def update_alert_status(alert_id):
     }), 200
 
 
-@counselor_bp.route("/api/counselor/case-summary/generate/<int:user_id>", methods=["POST"])
+@counselor_bp.route("/api/counselor/case-summary/generate/<int:user_id>", methods=["GET", "POST"])
 @login_required
 @counselor_required
 def api_generate_case_summary(user_id):
@@ -193,7 +193,7 @@ def api_get_case_summary(summary_id):
     return jsonify(record.to_dict()), 200
 
 
-@counselor_bp.route("/api/counselor/narrative/<int:user_id>", methods=["GET"])
+@counselor_bp.route("/api/counselor/narrative/<int:user_id>", methods=["GET", "POST"])
 @login_required
 @counselor_required
 def api_get_narrative_synthesis(user_id):
