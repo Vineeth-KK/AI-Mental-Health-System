@@ -73,30 +73,51 @@ WELLBEING_EXERCISES = {
 def generate_recommendations(
     distress_level: Optional[str] = None,
     current_checkin: Optional[Dict[str, Any]] = None,
-    journal_text: Optional[str] = None
+    journal_text: Optional[str] = None,
+    messages: Optional[List[Dict[str, str]]] = None
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Generates structured exercise recommendations and retrieves RAG educational context."""
-    # Build search query from distress indicators
+    # Build search query from distress indicators or user chat message
     query_parts = []
-    if current_checkin:
-        if current_checkin.get("anxiety", 0) >= 6:
-            query_parts.append("anxiety management calming breath panic")
-        if current_checkin.get("stress", 0) >= 6:
-            query_parts.append("stress reduction progressive muscle relaxation")
-        if current_checkin.get("sleep_quality", 10) <= 4:
-            query_parts.append("sleep hygiene insomnia wind down bedtime")
-        if current_checkin.get("isolation_score", 0) >= 6:
-            query_parts.append("social connection overcoming loneliness isolation")
-        if current_checkin.get("mood", 10) <= 4:
-            query_parts.append("emotional regulation depression behavioral activation")
     
-    if journal_text:
-        query_parts.append(journal_text[:200])
+    # In chat context, prioritize the user's explicit question/message
+    last_user_msg = ""
+    if messages:
+        last_user_msg = next((m.get("content", "") for m in reversed(messages) if m.get("role") == "user"), "")
 
-    search_query = " ".join(query_parts) if query_parts else "general mental wellbeing emotional balance coping"
+    is_casual_chat = False
+    if last_user_msg:
+        lowered = last_user_msg.lower()
+        casual_greetings = ["hi", "hello", "hey", "good morning", "good evening", "how are you", "bored", "what's up"]
+        if any(lowered == g or lowered.startswith(g + " ") for g in casual_greetings) and len(lowered.split()) <= 4:
+            is_casual_chat = True
+        else:
+            query_parts.append(last_user_msg[:250])
+
+    if not is_casual_chat:
+        if current_checkin:
+            if current_checkin.get("anxiety", 0) >= 6:
+                query_parts.append("anxiety management calming breath panic")
+            if current_checkin.get("stress", 0) >= 6:
+                query_parts.append("stress reduction progressive muscle relaxation")
+            if current_checkin.get("sleep_quality", 10) <= 4:
+                query_parts.append("sleep hygiene insomnia wind down bedtime")
+            if current_checkin.get("isolation_score", 0) >= 6:
+                query_parts.append("social connection overcoming loneliness isolation")
+            if current_checkin.get("mood", 10) <= 4:
+                query_parts.append("emotional regulation depression behavioral activation")
+        
+        if journal_text:
+            query_parts.append(journal_text[:200])
+
+    search_query = " ".join(query_parts).strip() if query_parts else ""
     
-    # Query RAG
-    rag_snippets = rag_service.query(search_query, n_results=3)
+    # Query RAG if a substantive query exists
+    rag_snippets = []
+    if search_query and not is_casual_chat:
+        raw_snippets = rag_service.query(search_query, n_results=3)
+        # Keep only snippets with sufficient semantic relevance (>= 0.40)
+        rag_snippets = [s for s in raw_snippets if s.get("relevance_score", 0) >= 0.40]
 
     # Select targeted exercises
     exercises = []
@@ -129,8 +150,9 @@ def recommendation_agent_node(state: AgentState) -> Dict[str, Any]:
     distress_level = state.get("distress_level")
     checkin = state.get("current_checkin")
     journal_text = state.get("journal_text")
+    messages = state.get("messages", [])
 
-    exercises, rag_context = generate_recommendations(distress_level, checkin, journal_text)
+    exercises, rag_context = generate_recommendations(distress_level, checkin, journal_text, messages)
     return {
         "recommendations": exercises,
         "rag_context": rag_context

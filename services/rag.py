@@ -121,11 +121,13 @@ class RAGService:
                 dists = results["distances"][0] if "distances" in results and results["distances"] else [0.0] * len(docs)
                 
                 for doc, meta, dist in zip(docs, metas, dists):
+                    # ChromaDB default L2 distance typically ranges 0 to 2 for normalized embeddings
+                    rel = round(max(0.0, min(1.0, 1.0 - (float(dist) / 2.0))), 3) if dist is not None else 0.85
                     output.append({
                         "text": doc,
                         "topic": meta.get("topic", "General Wellbeing"),
                         "source": meta.get("source", "Evidence-Based Guidance"),
-                        "relevance_score": round(1.0 - float(dist), 3) if dist is not None else 0.85
+                        "relevance_score": rel
                     })
             return output if output else self._fallback_query(query_text, n_results)
         except Exception as e:

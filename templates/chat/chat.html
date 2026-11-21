@@ -44,6 +44,27 @@
             Hello <strong class="text-white">{{ current_user.username }}</strong>. I am here to support your mental wellbeing. Feel free to talk through any worries, stress, or thoughts on your mind, or ask for a calming grounding exercise. How are you feeling right now?
           </div>
         </div>
+        {% if initial_messages %}
+          {% for msg in initial_messages %}
+            {% if msg.role == 'user' %}
+            <div class="chat-row chat-user-row d-flex justify-content-end">
+              <div class="chat-bubble chat-user">{{ msg.content | e }}</div>
+            </div>
+            {% else %}
+            <div class="chat-row chat-ai-row d-flex gap-3 align-items-start">
+              <img src="{{ url_for('static', filename='img/bot-avatar.svg') }}" alt="AI" width="36" height="36" class="rounded-circle mt-1 flex-shrink-0">
+              <div class="chat-bubble {% if msg.is_safety_override %}chat-safety-override{% else %}chat-ai{% endif %}">
+                {% if msg.is_safety_override %}
+                <div class="d-flex align-items-center gap-2 mb-1 text-danger fw-bold"><i class="bi bi-shield-exclamation"></i> Crisis Safety Support Notice</div>
+                {% else %}
+                <div class="fw-bold mb-1" style="color: var(--accent-warm);">CareAI Companion</div>
+                {% endif %}
+                {{ msg.content | replace('\n', '<br>') | safe }}
+              </div>
+            </div>
+            {% endif %}
+          {% endfor %}
+        {% endif %}
       </div>
 
       <!-- Typing Indicator -->
@@ -251,8 +272,18 @@ document.querySelectorAll(".quick-prompt").forEach(btn => {
   });
 });
 
+// Scroll chat to bottom on page load if past messages exist
+chatContainer.scrollTop = chatContainer.scrollHeight;
+
 // Clear conversation view
 document.getElementById("clearChatBtn").addEventListener("click", function() {
+  fetch("{{ url_for('chat.clear_history') }}", {
+    method: "DELETE",
+    headers: {
+      "X-CSRFToken": getCsrfToken()
+    }
+  }).catch(err => console.warn("Failed to clear remote history:", err));
+
   chatContainer.innerHTML = `
     <div class="chat-row chat-ai-row d-flex gap-3 align-items-start">
       <img src="{{ url_for('static', filename='img/bot-avatar.svg') }}" alt="AI" width="36" height="36" class="rounded-circle mt-1 flex-shrink-0">
