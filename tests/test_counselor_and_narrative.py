@@ -18,15 +18,19 @@ from agents.distress import analyze_conversational_distress
 from agents.monitoring import analyze_trends, fetch_user_conversational_history
 from agents.narrative_agent import synthesize_crisis_narrative
 from agents.case_summary_agent import generate_case_summary
+from config import Config
 from services.notifier import dispatch_counselor_alert
+
+
+class TestConfig(Config):
+    TESTING = True
+    WTF_CSRF_ENABLED = False
+    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
 
 
 @pytest.fixture
 def app():
-    app = create_app()
-    app.config["TESTING"] = True
-    app.config["WTF_CSRF_ENABLED"] = False
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+    app = create_app(TestConfig)
     with app.app_context():
         db.create_all()
         yield app
