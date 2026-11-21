@@ -33,12 +33,19 @@ def run_additive_migrations(app):
                     conn.execute(text("ALTER TABLE chat_messages ADD COLUMN detected_emotions VARCHAR(255)"))
                     logger.info("Added detected_emotions column to chat_messages")
 
-            # 2. Check users for role column
+            # 2. Check users for role column and capacity
             if "users" in existing_tables:
                 user_cols = [c["name"] for c in inspector.get_columns("users")]
                 if "role" not in user_cols:
                     conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'user'"))
                     logger.info("Added role column to users")
+                try:
+                    if db.engine.dialect.name == "mysql":
+                        conn.execute(text("ALTER TABLE users MODIFY COLUMN password_hash VARCHAR(256)"))
+                    elif db.engine.dialect.name == "postgresql":
+                        conn.execute(text("ALTER TABLE users ALTER COLUMN password_hash TYPE VARCHAR(256)"))
+                except Exception as col_err:
+                    logger.debug(f"Column resize check note: {col_err}")
 
             # 3. Check alerts for counselor review columns
             if "alerts" in existing_tables:

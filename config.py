@@ -32,6 +32,13 @@ class Config:
     WTF_CSRF_ENABLED = True
     TEMPLATES_AUTO_RELOAD = True
 
+    # User session & cookie persistence settings
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    PERMANENT_SESSION_LIFETIME = 604800  # 7 days in seconds
+    REMEMBER_COOKIE_DURATION = 604800
+    REMEMBER_COOKIE_HTTPONLY = True
+
     # Multi-Agent & RAG settings
     OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'llama3.2')
     # Resolve Ollama Host:
