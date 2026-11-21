@@ -7,7 +7,12 @@ load_dotenv(os.path.join(basedir, '.env'))
 class Config:
     SECRET_KEY = os.getenv('FLASK_SECRET_KEY', 'dev-secret-key')
     # Choose database based on environment variables
-    if all([
+    db_url = os.getenv('DATABASE_URL')
+    if db_url:
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
+        SQLALCHEMY_DATABASE_URI = db_url
+    elif all([
         os.getenv('MYSQL_USER'),
         os.getenv('MYSQL_PASSWORD'),
         os.getenv('MYSQL_HOST'),
