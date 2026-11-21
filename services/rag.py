@@ -26,6 +26,13 @@ class RAGService:
     def _init_collection(self):
         if self._initialized:
             return
+        # If running on Render or constrained cloud memory (512MB limit), avoid heavy ONNX model to prevent OOM
+        if os.environ.get("RENDER"):
+            logger.info("Render environment detected: using lightweight in-memory knowledge retrieval.")
+            self._initialized = True
+            self._collection = None
+            return
+
         try:
             os.makedirs(self.chroma_path, exist_ok=True)
             if self.client is None:
