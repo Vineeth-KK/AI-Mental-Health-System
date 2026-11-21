@@ -30,7 +30,10 @@ def create_app(config_class=Config):
             "status": "healthy",
             "service": "AI Mental Health Monitoring System",
             "multi_agent_system": "operational",
-            "rag_service": "active"
+            "rag_service": "active",
+            "ollama_host": app.config.get("OLLAMA_HOST"),
+            "ollama_model": app.config.get("OLLAMA_MODEL"),
+            "version": "v2.2-ollama-bridge"
         }), 200
 
     # Import and register blueprints

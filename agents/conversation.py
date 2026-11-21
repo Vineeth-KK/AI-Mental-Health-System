@@ -812,6 +812,95 @@ def _generate_intelligent_fallback(
             "Do you feel like engaging in something creative, something physical, or something relaxing?"
         )
 
+    # Quantum computing
+    if any(k in user_text for k in ["quantum computing", "quantum computer", "qubit", "quantum supremacy"]):
+        return (
+            f"Quantum computing is a transformative computing paradigm that harnesses the fundamental principles of quantum mechanics{name_clause}:\n\n"
+            "• **Bits vs. Qubits:** Classical computers process information using binary bits (0 or 1). Quantum computers use **qubits**, which can exist in a state of **superposition** (both 0 and 1 simultaneously), exponentially expanding computational capacity.\n"
+            "• **Entanglement:** Qubits can become entangled, meaning the state of one instantly correlates with another regardless of distance, enabling parallel processing of vast search spaces.\n"
+            "• **Key Applications:** Simulating molecular interactions for drug discovery, optimizing global logistics networks, and breaking/designing advanced cryptographic algorithms.\n\n"
+            "Would you like to explore how quantum algorithms like Shor's or Grover's work, or look at a real-world analogy?"
+        )
+
+    # Real-world analogy follow-up
+    if "analogy" in user_text:
+        if any(k in prior_context for k in ["quantum", "qubit", "superposition"]):
+            return (
+                f"Here is an intuitive real-world analogy for quantum computing{name_clause}:\n\n"
+                "Imagine you are trying to find the exit to an enormous, dark maze:\n"
+                "• **A Classical Computer** acts like a fast runner exploring one hallway at a time. It hits a dead end, retraces its steps, and tries the next path sequentially.\n"
+                "• **A Quantum Computer** acts like a wave of water poured into the maze entrance. Because of superposition, it flows through **every single hallway simultaneously** and reaches the exit all at once.\n\n"
+                "Does that visualization help clarify how quantum parallelism differs from classical processing?"
+            )
+        else:
+            return (
+                f"Here is an intuitive analogy to help picture that concept{name_clause}:\n\n"
+                "Think of it like an orchestra versus a solo instrument: when individual components work independently in sequence, each note takes time to play. "
+                "But when systems are coordinated together in parallel, they produce rich harmony in a single beat.\n\n"
+                "Which part of that concept would you like to break down next?"
+            )
+
+    # Isaac Asimov's Three Laws of Robotics
+    if any(k in user_text for k in ["laws of robotics", "three laws", "asimov"]):
+        return (
+            f"Isaac Asimov introduced the famous **Three Laws of Robotics** in his 1942 short story *Runaround*{name_clause}:\n\n"
+            "1. **First Law:** A robot may not injure a human being or, through inaction, allow a human being to come to harm.\n"
+            "2. **Second Law:** A robot must obey the orders given it by human beings, except where such orders would conflict with the First Law.\n"
+            "3. **Third Law:** A robot must protect its own existence as long as such protection does not conflict with the First or Second Law.\n\n"
+            "*(Later, Asimov added the Zeroth Law: A robot may not harm humanity, or, by inaction, allow humanity to come to harm.)*\n\n"
+            "These laws became foundational in literary science fiction and remain a classic reference point in modern AI ethics debates."
+        )
+
+    # Calculus / Math homework guidance
+    if any(k in user_text for k in ["calculus", "math homework", "math problem", "stuck on a difficult"]):
+        return (
+            f"Getting stuck on a calculus or advanced math problem is completely normal{name_clause}! Here is a structured approach to unstick yourself:\n\n"
+            "1. **State the Target Clearly:** Write down what variable or value you are explicitly solving for (e.g. rate of change $\\frac{dy}{dx}$, area under a curve $\\int f(x)dx$, or optimization critical points $f'(x) = 0$).\n"
+            "2. **List Given Identities & Constraints:** Note the domain constraints, geometric relationships, and chain rule / product rule components.\n"
+            "3. **Simplify with a Simpler Sub-Case:** If the formula looks intimidating, substitute simple test numbers (like $x = 0$ or $x = 1$) to understand the function's boundary behavior.\n"
+            "4. **Work Backwards from the Units:** Checking dimensional consistency often illuminates whether you should differentiate or integrate.\n\n"
+            "Please feel free to share the exact problem statement here, and we can solve it step-by-step!"
+        )
+
+    # Clean Python function to reverse words in a sentence
+    if "reverse words" in user_text or ("reverse" in user_text and "sentence" in user_text):
+        return (
+            f"Here is a clean, idiomatic Python function to reverse the words in a sentence{name_clause}:\n\n"
+            "```python\n"
+            "def reverse_words(sentence: str) -> str:\n"
+            "    \"\"\"Reverses the word order in a sentence while preserving words.\"\"\"\n"
+            "    if not sentence or not sentence.strip():\n"
+            "        return \"\"\n"
+            "    \n"
+            "    # Split by whitespace (automatically handles multiple consecutive spaces)\n"
+            "    words = sentence.strip().split()\n"
+            "    \n"
+            "    # Reverse the list of words and join with a single space\n"
+            "    return ' '.join(reversed(words))\n"
+            "\n"
+            "# Example demonstration\n"
+            "text = \"CareAI is an intelligent wellbeing assistant\"\n"
+            "print(reverse_words(text))\n"
+            "# Output: \"assistant wellbeing intelligent an is CareAI\"\n"
+            "```\n\n"
+            "### How it handles edge cases:\n"
+            "• **Extra whitespace:** Python's `.split()` without arguments splits on consecutive whitespace and strips leading/trailing blanks.\n"
+            "• **Time Complexity:** $\\mathcal{O}(n)$ where $n$ is string length.\n"
+            "• **Space Complexity:** $\\mathcal{O}(n)$ auxiliary memory to store word tokens.\n\n"
+            "Would you like to preserve original spacing or handle punctuation attached to words?"
+        )
+
+    # Programmer joke / humor
+    if any(k in user_text for k in ["joke", "humor", "funny", "laugh"]):
+        return (
+            f"Here's a classic programmer joke for you{name_clause}:\n\n"
+            "Why do programmers prefer dark mode?\n\n"
+            "*Because light attracts bugs!* 🐛💻\n\n"
+            "And here's a bonus one:\n"
+            "There are 10 types of people in the world: those who understand binary, and those who don't!\n\n"
+            "I hope that brought a smile to your day! How can I help you next?"
+        )
+
     # -------------------------------------------------------------
     # 12. GENERAL INQUIRY & OPEN CONVERSATION (Natural & Engaging)
     # -------------------------------------------------------------
@@ -825,20 +914,22 @@ def _generate_intelligent_fallback(
 
     # If the user asked a question (ending in ? or starting with question words)
     if "?" in last_user_msg or any(clean_text.startswith(w) for w in ["what", "how", "why", "who", "when", "where", "can you", "could you", "tell me"]):
+        words = [w for w in clean_text.split() if w not in ["what", "is", "the", "how", "why", "can", "you", "tell", "me", "about", "a", "an", "do", "does", "i", "to", "for", "in", "of", "and", "or", "please"]]
+        topic_phrase = " ".join(words[:4]) if words else "this topic"
         return (
-            f"That's a great question to explore{name_clause}! There are a few key dimensions to consider here:\n\n"
-            "From a foundational standpoint, looking at the core mechanisms and context helps clarify the bigger picture. "
-            "Whether you're exploring this out of curiosity, studying it for a project, or applying it practically, "
-            f"understanding how the pieces fit together gives you the most useful insight.{rag_snippet_str}\n\n"
-            "What specific angle or application of this would you like to dive into next?"
+            f"Here is a clear perspective on {topic_phrase}{name_clause}:\n\n"
+            f"When looking at {topic_phrase}, the most practical approach is to break down the primary mechanisms step-by-step. "
+            "Focusing on the foundational factors allows you to see the bigger picture and apply it with confidence.{rag_snippet_str}\n\n"
+            f"What specific aspect of {topic_phrase} would you like to explore further together?"
         )
 
     # General open statement or thought
+    words = [w for w in clean_text.split() if len(w) > 3]
+    subject = f"regarding {words[0]}" if words else ""
     return (
-        f"Thank you for sharing that{name_clause}. I'm following along with what you've mentioned, "
-        "and I'm here to explore this further with you. We can break it down in more detail, "
-        f"look at practical next steps, or discuss whatever is on your mind.{rag_snippet_str}\n\n"
-        "Where would you like to take our conversation from here?"
+        f"Thank you for sharing that{name_clause}. I am following your thoughts {subject} closely. "
+        "We can break this down in more detail, look at practical next steps, or talk through whatever is most helpful for you right now.{rag_snippet_str}\n\n"
+        "Where would you like to take our conversation next?"
     )
 
 

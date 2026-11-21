@@ -34,10 +34,16 @@ class Config:
 
     # Multi-Agent & RAG settings
     OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'llama3.2')
-    # If running on Render cloud and OLLAMA_HOST is not explicitly set, default to active tunnel
-    if os.getenv('RENDER') and not os.getenv('OLLAMA_HOST'):
+    # Resolve Ollama Host:
+    # If running in cloud production (Render/cloud container with $PORT or $RENDER)
+    # and OLLAMA_HOST is either unset or points to localhost/127.0.0.1,
+    # route to the active production tunnel endpoint so the deployed app can reach the LLM.
+    configured_host = os.getenv('OLLAMA_HOST', '').strip()
+    is_cloud_env = bool(os.getenv('RENDER') or os.getenv('PORT') or os.getenv('DYNO'))
+
+    if is_cloud_env and (not configured_host or '127.0.0.1' in configured_host or 'localhost' in configured_host):
         OLLAMA_HOST = 'https://render-tyler-time-adsl.trycloudflare.com'
     else:
-        OLLAMA_HOST = os.getenv('OLLAMA_HOST', 'http://127.0.0.1:11434')
+        OLLAMA_HOST = configured_host or 'http://127.0.0.1:11434'
     CHROMA_DB_PATH = os.path.join(basedir, "instance", "chroma_db")
 
