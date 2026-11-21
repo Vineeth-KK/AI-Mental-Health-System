@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Journal – CareAI{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card glass p-4 mb-4">
+      <div class="d-flex align-items-center gap-3 mb-3">
+        <span class="fs-2">✍️</span>
+        <div>
+          <h3 class="fw-bold mb-0">Reflective Journal</h3>
+          <p class="text-muted small mb-0">Expressive writing helps process complex emotions and externalize stress</p>
+        </div>
+      </div>
+
+      <form id="journalForm">
+        <div class="mb-3">
+          <label for="journalContent" class="form-label text-light fw-semibold">What's on your mind today?</label>
+          <textarea id="journalContent" class="form-control bg-dark text-light border-secondary" rows="5" placeholder="Write freely about your thoughts, feelings, or whatever you are navigating right now..." required></textarea>
+          <div class="form-text text-muted small">
+            🔒 Private & Confidential: Your reflection is analyzed by Agent 5 for safety and emotional sentiment.
+          </div>
+        </div>
+
+        <button type="submit" id="saveJournalBtn" class="btn btn-primary px-4 fw-semibold">
+          <i class="bi bi-save me-1"></i> Save Entry & Analyze
+        </button>
+      </form>
+    </div>
+
+    <!-- Agent Response Feedback -->
+    <div id="journalResultCard" class="card glass p-4 mb-4 d-none">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <span class="fs-4">🧠</span>
+        <h5 class="fw-bold mb-0">Analysis & Wellbeing Feedback</h5>
+      </div>
+
+      <div id="journalSafetyBanner" class="alert alert-danger d-none mb-3">
+        <h6 class="alert-heading fw-bold"><i class="bi bi-shield-exclamation"></i> Crisis Safety Support Activated</h6>
+        <div id="journalSafetyText" class="small"></div>
+      </div>
+
+      <div class="p-3 rounded bg-dark bg-opacity-75 mb-3">
+        <span class="text-muted small d-block mb-1">AGENT OBSERVATION</span>
+        <p id="journalAgentResponse" class="mb-0 text-light"></p>
+      </div>
+
+      <div id="sentimentBadgeContainer" class="mb-3">
+        <span class="text-muted small me-2">Identified Tone:</span>
+        <span id="sentimentBadge" class="badge bg-secondary text-uppercase">Neutral</span>
+      </div>
+    </div>
+
+    <!-- Past Journal Entries -->
+    <div class="card glass p-4">
+      <h5 class="fw-bold mb-3"><i class="bi bi-journal-bookmark me-1"></i> Previous Entries</h5>
+      {% if entries %}
+        <div class="d-flex flex-column gap-3">
+          {% for e in entries %}
+          <div class="p-3 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+            <div class="d-flex justify-content-between text-muted small mb-2">
+              <span><i class="bi bi-calendar3"></i> {{ e.created_at.strftime('%B %d, %Y at %H:%M') if e.created_at else '' }}</span>
+            </div>
+            <p class="text-light mb-0" style="white-space: pre-wrap;">{{ e.content }}</p>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-muted small mb-0">No journal entries saved yet. Writing down your experiences is a powerful first step.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById("journalForm").addEventListener("submit", function(e) {
+  e.preventDefault();
+  const btn = document.getElementById("saveJournalBtn");
+  const content = document.getElementById("journalContent").value;
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Analyzing...`;
+
+  fetch("{{ url_for('journal.create_journal') }}", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": getCsrfToken()
+    },
+    body: JSON.stringify({ content: content })
+  })
+  .then(r => r.json())
+  .then(data => {
+    btn.disabled = false;
+    btn.innerHTML = `<i class="bi bi-save me-1"></i> Save Entry & Analyze`;
+
+    const card = document.getElementById("journalResultCard");
+    card.classList.remove("d-none");
+    document.getElementById("journalAgentResponse").innerText = data.response || "Entry saved.";
+
+    // Tone badge
+    const badge = document.getElementById("sentimentBadge");
+    const sent = (data.sentiment && data.sentiment.sentiment) ? data.sentiment.sentiment : "neutral";
+    badge.innerText = sent;
+    badge.className = "badge text-uppercase " + (sent === 'distressed' ? 'badge-high' : (sent === 'positive' ? 'bg-success' : 'bg-secondary'));
+
+    // Safety Banner
+    const banner = document.getElementById("journalSafetyBanner");
+    if (data.priority_override || (data.safety_alert && data.safety_alert.is_urgent)) {
+      banner.classList.remove("d-none");
+      document.getElementById("journalSafetyText").innerText = data.safety_alert.crisis_resources || data.response;
+    } else {
+      banner.classList.add("d-none");
+    }
+
+    document.getElementById("journalContent").value = "";
+    card.scrollIntoView({ behavior: 'smooth' });
+  })
+  .catch(err => {
+    btn.disabled = false;
+    btn.innerHTML = `<i class="bi bi-save me-1"></i> Save Entry & Analyze`;
+    alert("Error saving journal: " + err);
+  });
+});
+</script>
+{% endblock %}

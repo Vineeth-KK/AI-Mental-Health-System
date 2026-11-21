@@ -5,18 +5,25 @@ __pycache__/
 *.pyo
 *.pyd
 venv/
+.venv/
 .idea/
+.vscode/
 *.egg-info/
+.pytest_cache/
+.cache/
 
-# Environment variables
+# Environment variables & secrets
 .env
+
+# Database persistence & instances (never commit user data)
+instance/
+*.db
+*.sqlite
+mhapp.db
+
+# Vector store data
+chroma_db/
 
 # Logs
 logs/
 *.log
-
-# Chroma DB storage
-chroma_db/
-
-# SQLite fallback (if any)
-*.sqlite
