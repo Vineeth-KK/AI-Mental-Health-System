@@ -143,10 +143,11 @@ def chat():
     return jsonify({
         "response": reply_content,
         "priority_override": is_safety_override,
-        "safety_alert": agent_result.get("safety_alert", {}),
-        "recommendations": agent_result.get("recommendations", []),
+        "safety_alert": agent_result.get("safety_alert") or {},
+        "recommendations": agent_result.get("recommendations") or [],
         "rag_context": [
             {"topic": r.get("topic"), "text": r.get("text")[:150] + "..."}
-            for r in agent_result.get("rag_context", [])
+            for r in (agent_result.get("rag_context") or [])
+            if isinstance(r, dict) and r.get("text")
         ]
     }), 200

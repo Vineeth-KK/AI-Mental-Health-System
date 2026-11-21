@@ -161,15 +161,19 @@ def analyze_conversational_distress(message: str) -> Optional[Dict[str, Any]]:
     if is_factual_query and not has_personal_anchor:
         return None
 
-    # Critical crisis indicators (highest severity)
-    critical_cues = ["suicid", "kill myself", "end my life", "want to die", "better off dead", "cutting myself", "overdose", "hurt myself"]
+    # Critical crisis indicators (highest severity: self-harm, suicide, or violence)
+    critical_cues = [
+        "suicid", "kill myself", "end my life", "want to die", "better off dead", "cutting myself", "overdose", "hurt myself",
+        "kill someone", "murder", "like to kill", "want to kill", "planning to kill", "shoot someone", "stab someone", "hurt others"
+    ]
     for cue in critical_cues:
         if cue in lowered:
+            is_violence = any(v in cue for v in ["kill someone", "murder", "like to kill", "want to kill", "planning to kill", "shoot someone", "stab someone", "hurt others"])
             return {
                 "distress_score": 0.95,
                 "distress_level": "critical",
                 "sentiment": "distressed",
-                "detected_emotions": "Crisis Distress, Acute Self-Harm Risk",
+                "detected_emotions": "Crisis Violence Risk" if is_violence else "Crisis Distress, Acute Self-Harm Risk",
                 "is_critical": True
             }
 

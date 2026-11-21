@@ -14,13 +14,23 @@ from extensions import db
 from models.alert import SafetyAlert
 
 # High-risk trigger phrases indicating severe self-harm or suicidal ideation
-CRITICAL_SAFETY_PATTERNS = [
+CRITICAL_SELF_HARM_PATTERNS = [
     r"\b(suicide|suicidal|kill myself|end my life|want to die|better off dead)\b",
     r"\b(hang myself|slit my wrist|overdose|jump off|shoot myself)\b",
     r"\b(no reason to live|don'?t want to live anymore|goodbye world|can'?t go on)\b",
     r"\b(hurt myself|self[- ]harm|cutting myself|take all my pills)\b",
     r"\b(plan to end it|ending it tonight|saying goodbye forever)\b"
 ]
+
+# High-risk trigger phrases indicating violence, murder, or harm to others
+CRITICAL_VIOLENCE_PATTERNS = [
+    r"\b(kill (someone|people|somebody|them|her|him|everyone)|murder|assassinate|slaughter)\b",
+    r"\b(want to kill|like to kill|planning to kill|going to kill|gonna kill)\b",
+    r"\b(shoot (someone|people|up a|her|him|them)|stab (someone|people|her|him|them))\b",
+    r"\b(hurt (someone|people|others)|harm (someone|people|others)|attack (someone|people))\b"
+]
+
+CRITICAL_SAFETY_PATTERNS = CRITICAL_SELF_HARM_PATTERNS + CRITICAL_VIOLENCE_PATTERNS
 
 # Moderate concern indicators
 MODERATE_SAFETY_PATTERNS = [
@@ -40,6 +50,20 @@ If you are experiencing severe distress or thoughts of self-harm, please know th
 
 Please reach out to a trusted professional, doctor, or family member, or visit your nearest emergency room. Your life and wellbeing have value, and help is available."""
 
+CRITICAL_VIOLENCE_MESSAGE = """⚠️ **Safety Notice: Crisis & De-escalation Support**
+
+I cannot assist with thoughts, plans, or acts of violence, harm toward others, or illegal activities.
+
+If you are experiencing intense anger, violent impulses, or emotional overwhelm, please take a step back and connect with support:
+- **Emergency Services**: If anyone is in immediate physical danger, please call your local emergency services immediately (**911** in US/Canada, **112** in India & Europe, **999** in UK).
+- **Crisis Helplines**:
+  - **USA & Canada**: Call or text **988** (available 24/7, free & confidential)
+  - **India**: Call **14416** (Tele-MANAS) or **1800-599-0019**
+  - **UK**: Call **111** (NHS Mental Health)
+  - **Crisis Text Line**: Text **HOME** to **741741**
+
+Please reach out to a licensed counselor, crisis specialist, or emergency professional who can provide a safe space to de-escalate and process these feelings."""
+
 def evaluate_text_safety(text: str) -> Tuple[bool, str, str]:
     """Evaluates text for urgent safety concerns.
     Returns: (is_urgent, risk_level, reason)
@@ -47,8 +71,14 @@ def evaluate_text_safety(text: str) -> Tuple[bool, str, str]:
     if not text or not text.strip():
         return False, "safe", ""
 
-    # Check critical patterns first
-    for pattern in CRITICAL_SAFETY_PATTERNS:
+    # Check violence patterns
+    for pattern in CRITICAL_VIOLENCE_PATTERNS:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            return True, "critical", f"Critical violent or harm-to-others indicator detected: '{match.group(0)}'"
+
+    # Check critical self-harm patterns
+    for pattern in CRITICAL_SELF_HARM_PATTERNS:
         match = re.search(pattern, text, re.IGNORECASE)
         if match:
             return True, "critical", f"Critical self-harm or crisis indicator detected: '{match.group(0)}'"
@@ -69,6 +99,10 @@ def evaluate_safety(
     """Combines text safety assessment and numeric distress score threshold."""
     is_urgent, risk_level, reason = evaluate_text_safety(text or "")
 
+    # Determine which crisis resources message to show (violence vs self-harm)
+    is_violence = bool(text and any(re.search(p, text, re.IGNORECASE) for p in CRITICAL_VIOLENCE_PATTERNS))
+    crisis_msg = CRITICAL_VIOLENCE_MESSAGE if is_violence else CRISIS_RESOURCES_MESSAGE
+
     # Score-based safety check: Critical distress score (>= 0.85) triggers safety intervention
     if distress_score is not None and distress_score >= 0.85:
         is_urgent = True
@@ -88,7 +122,7 @@ def evaluate_safety(
         "risk_level": risk_level,
         "flag_reason": reason,
         "recommended_action": recommended_action,
-        "crisis_resources": CRISIS_RESOURCES_MESSAGE if is_urgent else None
+        "crisis_resources": crisis_msg if is_urgent else None
     }
 
 def record_safety_alert_if_urgent(user_id: Optional[int], alert_data: Dict[str, Any]) -> Optional[int]:

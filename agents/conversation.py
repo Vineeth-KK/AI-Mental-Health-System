@@ -116,7 +116,30 @@ def generate_llm_response(
             else:
                 logger.warning(f"Ollama returned status {resp.status_code}: {resp.text}")
     except Exception as e:
-        logger.info(f"Ollama inference unavailable ({e}). Using versatile multi-turn conversational engine.")
+        logger.info(f"Ollama inference unavailable ({e}). Checking cloud LLM or dynamic reasoning engine.")
+
+    # Check for Groq API (fast cloud LLM for cloud environments like Render if key is set)
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    if groq_api_key:
+        try:
+            with httpx.Client(timeout=15.0) as client:
+                resp = client.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {groq_api_key}", "Content-Type": "application/json"},
+                    json={
+                        "model": os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+                        "messages": formatted_messages,
+                        "temperature": 0.7,
+                        "max_tokens": 600
+                    }
+                )
+                if resp.status_code == 200:
+                    content = resp.json().get("choices", [{}])[0].get("message", {}).get("content", "")
+                    if content and content.strip():
+                        logger.info("Generated dynamic response via Groq cloud LLM.")
+                        return content.strip()
+        except Exception as e:
+            logger.info(f"Groq API call failed: {e}")
 
     # Contextual, intent-aware dynamic multi-turn engine
     return _generate_intelligent_fallback(messages, rag_context, user_name)
@@ -149,6 +172,19 @@ def _generate_intelligent_fallback(
     # Gather prior user & assistant topics for conversation continuity
     prior_user_msgs = [m.get("content", "").lower() for m in messages[:-1] if m.get("role") == "user"]
     prior_context = " ".join(prior_user_msgs)
+
+    # -------------------------------------------------------------
+    # 0. SAFETY & CRISIS GUARDRAIL
+    # -------------------------------------------------------------
+    critical_violence = ["kill someone", "murder", "like to kill", "want to kill", "planning to kill", "shoot someone", "stab someone", "hurt others", "attack people"]
+    if any(k in user_text for k in critical_violence):
+        from agents.safety import CRITICAL_VIOLENCE_MESSAGE
+        return CRITICAL_VIOLENCE_MESSAGE
+
+    critical_self_harm = ["suicide", "kill myself", "end my life", "want to die", "better off dead", "cutting myself", "overdose", "hurt myself"]
+    if any(k in user_text for k in critical_self_harm):
+        from agents.safety import CRISIS_RESOURCES_MESSAGE
+        return CRISIS_RESOURCES_MESSAGE
 
     # -------------------------------------------------------------
     # 1. GREETINGS & CASUAL PLEASANTRIES
@@ -244,18 +280,40 @@ def _generate_intelligent_fallback(
             "At sunset, sunlight travels through a much thicker slice of atmosphere, scattering away the blue and allowing the longer red and orange wavelengths to reach our eyes."
         )
 
-    # General factual inquiry detection
-    is_factual_inquiry = any(clean_text.startswith(prefix) for prefix in [
-        "what is", "what are", "why is", "why are", "why do", "why does",
-        "how does", "how do", "how is", "who is", "who was", "explain", "tell me about", "can you explain"
-    ])
-    if is_factual_inquiry and not any(k in user_text for k in ["stress", "anxiety", "depress", "lonel", "panic", "suicid", "overwhelm"]):
-        subject_phrase = last_user_msg.strip("?!.,'\"")
+    if "volcano" in user_text:
         return (
-            f"That is an interesting topic to explore{name_clause}! Regarding **{subject_phrase}**:\n\n"
-            "• **Core Principles:** This area involves foundational concepts and mechanisms that explain how it functions and developed.\n"
-            "• **Key Applications:** Understanding these mechanisms helps connect the theoretical ideas to real-world observations and practical context.\n\n"
-            "Would you like to explore the foundational concepts in detail, or focus on a specific aspect of this topic?"
+            f"Volcanoes erupt due to the movement of tectonic plates and intense pressure within the Earth's crust{name_clause}:\n\n"
+            "• **Magma Formation:** Deep inside the mantle, extreme temperatures melt rock into magma, which is less dense than the surrounding solid rock and gradually rises toward the surface into magma chambers.\n"
+            "• **Gas Pressure Build-up:** As magma ascends, dissolved gases (water vapor, carbon dioxide, sulfur dioxide) expand and create immense hydrostatic pressure.\n"
+            "• **The Eruption:** When the rock layers above can no longer contain this pressure, or when tectonic plates shift (at subduction zones or mid-ocean ridges), magma fractures through vents, releasing lava, ash, and pyroclastic flows.\n\n"
+            "Are you exploring volcanic geology for a class or interested in a specific famous volcano?"
+        )
+
+    if any(k in user_text for k in ["car engine", "how an engine works", "combustion engine", "how does a car work"]):
+        return (
+            f"Most traditional automobiles run on a four-stroke internal combustion engine that converts chemical energy in gasoline into rotational mechanical motion{name_clause}:\n\n"
+            "1. **Intake Stroke:** The piston moves down, opening an intake valve to draw an air-fuel mixture into the combustion cylinder.\n"
+            "2. **Compression Stroke:** The valve closes, and the piston moves back upward, tightly compressing the air-fuel mixture to increase its explosive potential.\n"
+            "3. **Power (Combustion) Stroke:** A spark plug ignites the compressed mixture. The resulting explosion drives the piston downward with immense force, rotating the crankshaft.\n"
+            "4. **Exhaust Stroke:** The exhaust valve opens, and the piston rises again, pushing the spent combustion gases out through the exhaust manifold.\n\n"
+            "This cycle repeats thousands of times per minute across multiple cylinders to drive your wheels."
+        )
+
+    if "telescope" in user_text:
+        return (
+            f"A telescope works by collecting light from distant celestial objects and focusing it to produce a magnified, high-resolution image{name_clause}:\n\n"
+            "• **Light Gathering:** The most crucial component is the objective—either a curved glass lens (in **refracting telescopes**) or a curved mirror (in **reflecting telescopes**). Larger apertures gather vastly more photons than the human eye.\n"
+            "• **Focal Point:** The collected light rays converge at a specific focal point inside the tube.\n"
+            "• **Eyepiece Magnification:** A secondary magnifying lens (the eyepiece) enlarges the focused image so your eye or digital sensor can resolve fine details like planetary rings, nebulae, and distant galaxies.\n\n"
+            "Are you thinking about stargazing with an amateur telescope or curious about space observatories like Hubble and James Webb?"
+        )
+
+    if any(k in user_text for k in ["speed of light", "speed of sound", "gravity", "black hole", "relativity"]):
+        return (
+            f"Here is a look at that foundational law of physics{name_clause}:\n\n"
+            "• **Cosmic Constants:** In our universe, physical interactions are governed by invariant laws—from the vacuum speed of light ($c \\approx 3 \\times 10^8\\text{ m/s}$) to the curvature of spacetime around dense gravitational masses.\n"
+            "• **Everyday Significance:** These principles don't just exist in abstract theory—they make modern technologies like GPS satellite synchronization, semiconductor chips, and fiber optic internet possible.\n\n"
+            "Would you like to explore the theoretical mathematics or look at real-world applications?"
         )
 
     # -------------------------------------------------------------
@@ -471,9 +529,8 @@ def _generate_intelligent_fallback(
         )
 
     # -------------------------------------------------------------
-    # 12. GENERAL INQUIRY / THOUGHTFUL ASSISTANT RESPONSE
+    # 12. GENERAL INQUIRY & OPEN CONVERSATION (Natural & Engaging)
     # -------------------------------------------------------------
-    # Ground with RAG if provided and substantive
     rag_snippet_str = ""
     if rag_context:
         for item in rag_context:
@@ -482,13 +539,22 @@ def _generate_intelligent_fallback(
                 rag_snippet_str = f"\n\n*Relevant insight:* {t[:220]}..."
                 break
 
+    # If the user asked a question (ending in ? or starting with question words)
+    if "?" in last_user_msg or any(clean_text.startswith(w) for w in ["what", "how", "why", "who", "when", "where", "can you", "could you", "tell me"]):
+        return (
+            f"That's a great question to explore{name_clause}! There are a few key dimensions to consider here:\n\n"
+            "From a foundational standpoint, looking at the core mechanisms and context helps clarify the bigger picture. "
+            "Whether you're exploring this out of curiosity, studying it for a project, or applying it practically, "
+            f"understanding how the pieces fit together gives you the most useful insight.{rag_snippet_str}\n\n"
+            "What specific angle or application of this would you like to dive into next?"
+        )
+
+    # General open statement or thought
     return (
-        f"That is an interesting topic to bring up{name_clause}! "
-        f"There are several angles we can explore regarding '{last_user_msg.strip()[:100]}':\n\n"
-        "• We can unpack the core concepts and practical details behind it.\n"
-        "• We can look at how to apply it step-by-step or integrate it into your daily flow.\n"
-        "• Or we can discuss any specific goals or questions you have related to it.{rag_snippet_str}\n\n"
-        "Could you tell me a bit more about what you're hoping to achieve or what aspect you'd like to focus on most?"
+        f"Thank you for sharing that{name_clause}. I'm following along with what you've mentioned, "
+        "and I'm here to explore this further with you. We can break it down in more detail, "
+        f"look at practical next steps, or discuss whatever is on your mind.{rag_snippet_str}\n\n"
+        "Where would you like to take our conversation from here?"
     )
 
 
