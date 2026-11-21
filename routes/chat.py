@@ -56,18 +56,35 @@ def chat():
 
     user_msg = str(data["message"]).strip()
 
-    # 1. Retrieve recent conversation history from DB (up to last 12 messages for context)
+    # 1. Retrieve active conversation history for context-aware multi-turn continuity
+    from datetime import datetime, timedelta
+    
+    client_history = data.get("history", [])
     recent_db_msgs = (
         ChatMessage.query.filter_by(user_id=current_user.id)
         .order_by(ChatMessage.timestamp.desc())
-        .limit(12)
+        .limit(14)
         .all()
     )
     recent_db_msgs.reverse()
 
     formatted_messages = []
-    for msg in recent_db_msgs:
-        formatted_messages.append({"role": msg.role, "content": msg.content})
+    # If the user has recent messages within the last 3 hours, preserve conversational continuity
+    if recent_db_msgs:
+        last_time = recent_db_msgs[-1].timestamp
+        now_time = datetime.utcnow()
+        if last_time and (now_time - last_time).total_seconds() < 10800:
+            for msg in recent_db_msgs[-10:]:
+                formatted_messages.append({"role": msg.role, "content": msg.content})
+        elif isinstance(client_history, list) and client_history:
+            # Active tab conversation window
+            for h in client_history[-8:]:
+                if isinstance(h, dict) and h.get("content"):
+                    formatted_messages.append({"role": h.get("role", "user"), "content": str(h["content"]).strip()})
+    elif isinstance(client_history, list) and client_history:
+        for h in client_history[-8:]:
+            if isinstance(h, dict) and h.get("content"):
+                formatted_messages.append({"role": h.get("role", "user"), "content": str(h["content"]).strip()})
 
     # Add the new user message to the workflow input
     formatted_messages.append({"role": "user", "content": user_msg})

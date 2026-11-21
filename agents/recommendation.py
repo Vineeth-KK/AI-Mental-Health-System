@@ -108,50 +108,80 @@ def generate_recommendations(
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Generates structured exercise recommendations and retrieves RAG educational context."""
     # Build search query from distress indicators or user chat message
-    query_parts = []
-    
-    # In chat context, prioritize the user's explicit question/message
     last_user_msg = ""
     if messages:
         last_user_msg = next((m.get("content", "") for m in reversed(messages) if m.get("role") == "user"), "")
 
     is_casual_chat = False
     if last_user_msg:
-        lowered = last_user_msg.lower()
-        casual_greetings = ["hi", "hello", "hey", "good morning", "good evening", "how are you", "bored", "what's up"]
+        lowered = last_user_msg.lower().strip("?!.,")
+        casual_greetings = [
+            "hi", "hello", "hey", "good morning", "good evening", "how are you",
+            "bored", "what's up", "hey there", "good afternoon", "what can i do when i feel bored"
+        ]
         if any(lowered == g or lowered.startswith(g + " ") for g in casual_greetings) and len(lowered.split()) <= 4:
             is_casual_chat = True
+
+    # Determine RAG search query based on context type
+    if messages:
+        # Chat mode: driven strictly by user's explicit question, never polluted by historical check-in scores
+        if not is_casual_chat and last_user_msg:
+            # Query knowledge base for informational, coping, and psychological guidance
+            search_query = last_user_msg[:250].strip()
         else:
-            query_parts.append(last_user_msg[:250])
+            search_query = ""
+    elif journal_text:
+        # Journal reflection mode
+        search_query = journal_text[:250].strip()
+    elif current_checkin:
+        # Check-in assessment mode: construct targeted query from active check-in distress indicators
+        query_parts = []
+        if current_checkin.get("anxiety", 0) >= 6:
+            query_parts.append("anxiety management calming breath panic")
+        if current_checkin.get("stress", 0) >= 6:
+            query_parts.append("stress reduction progressive muscle relaxation")
+        if current_checkin.get("sleep_quality", 10) <= 4:
+            query_parts.append("sleep hygiene insomnia wind down bedtime")
+        if current_checkin.get("isolation_score", 0) >= 6:
+            query_parts.append("social connection overcoming loneliness isolation")
+        if current_checkin.get("mood", 10) <= 4:
+            query_parts.append("emotional regulation depression behavioral activation")
+        search_query = " ".join(query_parts).strip()
+    else:
+        search_query = ""
 
-    if not is_casual_chat:
-        if current_checkin:
-            if current_checkin.get("anxiety", 0) >= 6:
-                query_parts.append("anxiety management calming breath panic")
-            if current_checkin.get("stress", 0) >= 6:
-                query_parts.append("stress reduction progressive muscle relaxation")
-            if current_checkin.get("sleep_quality", 10) <= 4:
-                query_parts.append("sleep hygiene insomnia wind down bedtime")
-            if current_checkin.get("isolation_score", 0) >= 6:
-                query_parts.append("social connection overcoming loneliness isolation")
-            if current_checkin.get("mood", 10) <= 4:
-                query_parts.append("emotional regulation depression behavioral activation")
-        
-        if journal_text:
-            query_parts.append(journal_text[:200])
-
-    search_query = " ".join(query_parts).strip() if query_parts else ""
-    
     # Query RAG if a substantive query exists
     rag_snippets = []
     if search_query and not is_casual_chat:
         raw_snippets = rag_service.query(search_query, n_results=3)
-        # Keep only snippets with sufficient semantic relevance (>= 0.40)
-        rag_snippets = [s for s in raw_snippets if s.get("relevance_score", 0) >= 0.40]
+        # Quality relevance filter: keep snippets with sufficient relevance and topical relevance
+        q_words = set(w for w in search_query.lower().split() if len(w) > 3)
+        for s in raw_snippets:
+            rel = s.get("relevance_score", 0.0)
+            s_text = s.get("text", "").lower()
+            s_words = set(w for w in s_text.split() if len(w) > 3)
+            overlap = len(q_words.intersection(s_words))
+            # Include snippet if semantically close or shares topical vocabulary
+            if rel >= 0.50 and (overlap > 0 or rel >= 0.70):
+                rag_snippets.append(s)
 
     # Select targeted exercises
     exercises = []
-    if current_checkin:
+    # In chat mode, match exercises directly to the user's conversational intent if expressed
+    if messages and last_user_msg:
+        lum = last_user_msg.lower()
+        if any(w in lum for w in ["anxious", "anxiety", "panic", "grounding", "fear", "racing"]):
+            exercises.extend(WELLBEING_EXERCISES["anxiety"])
+        if any(w in lum for w in ["stress", "overwhelm", "pressure", "burnout", "routine", "exam"]):
+            exercises.extend(WELLBEING_EXERCISES["stress"])
+        if any(w in lum for w in ["sleep", "insomnia", "bedtime", "awake", "tonight", "rest"]):
+            exercises.extend(WELLBEING_EXERCISES["sleep"])
+        if any(w in lum for w in ["lonely", "loneliness", "isolated", "disconnect", "alone"]):
+            exercises.extend(WELLBEING_EXERCISES["isolation"])
+        if any(w in lum for w in ["sad", "depressed", "hopeless", "unmotivated", "bored"]):
+            exercises.extend(WELLBEING_EXERCISES["mood"])
+
+    if not exercises and current_checkin:
         if current_checkin.get("anxiety", 0) >= 6:
             exercises.extend(WELLBEING_EXERCISES["anxiety"])
         if current_checkin.get("stress", 0) >= 6:
