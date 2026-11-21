@@ -2,22 +2,25 @@
 {% block title %}Daily Check‑In – CareAI Mental Health Monitor{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-lg-9 col-xl-8">
+<div class="row g-4">
+  <!-- Left Column: Form & History -->
+  <div class="col-lg-7 col-xl-8">
     <!-- Hero Banner Card -->
-    <div class="card glass border-0 overflow-hidden mb-4 p-0" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border-radius: 18px;">
-      <div class="row g-0 align-items-center">
+    <div class="card border-0 overflow-hidden mb-4 p-0 position-relative" style="background: linear-gradient(135deg, rgba(14, 21, 37, 0.94) 0%, rgba(9, 13, 24, 0.98) 100%); border-radius: 18px;">
+      <div style="position: absolute; right: 0; top: 0; bottom: 0; width: 50%; background-image: url('{{ url_for('static', filename='img/healthy-mind.jpg') }}'); background-size: cover; background-position: center; opacity: 0.12; pointer-events: none; mask-image: linear-gradient(to right, transparent, black 60%); -webkit-mask-image: linear-gradient(to right, transparent, black 60%);"></div>
+
+      <div class="row g-0 align-items-center position-relative" style="z-index: 1;">
         <div class="col-md-7 p-4">
           <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-success bg-opacity-20 border border-success border-opacity-30 text-success small fw-semibold mb-2">
             <i class="bi bi-heart-pulse-fill"></i> Agent 3: Distress Analysis
           </div>
-          <h3 class="fw-bold text-white mb-2">Daily Wellbeing Check‑In</h3>
-          <p class="text-secondary small mb-0">
-            Take 60 seconds to rate your core indicators. CareAI normalizes your inputs into a deterministic distress index (0.00 – 1.00) to detect shifts before they become crises.
+          <h3 class="fw-bold text-white mb-2">Daily Wellbeing Assessment</h3>
+          <p class="text-secondary small mb-0" style="line-height: 1.6;">
+            Take a quiet moment to rate your 5 core indicators. CareAI normalizes your scores into a clinical distress index (0.00 – 1.00) to identify subtle shifts before they escalate.
           </p>
         </div>
         <div class="col-md-5 d-none d-md-block text-center p-3">
-          <img src="{{ url_for('static', filename='img/checkin-hero.svg') }}" alt="Daily Check-In Illustration" class="img-fluid" style="max-height: 160px; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.4));">
+          <img src="{{ url_for('static', filename='img/checkin-hero.svg') }}" alt="Daily Check-In Illustration" class="img-fluid hero-hover" style="max-height: 160px; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.45));">
         </div>
       </div>
     </div>
@@ -149,7 +152,7 @@
 
     <!-- Recent Check-Ins History -->
     <div class="card glass p-4" style="border-radius: 18px;">
-      <h5 class="fw-bold mb-3"><i class="bi bi-clock-history me-1 text-primary"></i> Assessment History</h5>
+      <h5 class="fw-bold mb-3 text-white"><i class="bi bi-clock-history me-1 text-primary"></i> Assessment History</h5>
       {% if recent_checkins %}
       <div class="table-responsive">
         <table class="table table-dark table-hover table-sm align-middle">
@@ -187,6 +190,62 @@
       {% else %}
         <p class="text-muted small mb-0">No check-ins recorded yet.</p>
       {% endif %}
+    </div>
+  </div>
+
+  <!-- Right Sidebar: Visual Elements & Mindful Tools -->
+  <div class="col-lg-5 col-xl-4">
+    <div class="d-flex flex-column gap-4">
+      <!-- Card 1: Mindful Breathing Visualizer -->
+      <div class="card glass overflow-hidden card-hover">
+        <div class="img-container-overflow">
+          <img src="{{ url_for('static', filename='img/mindfulness-breathing.jpg') }}" alt="Breathing Visualizer" class="card-img-top-cover">
+        </div>
+        <div class="p-4">
+          <h5 class="fw-bold text-white mb-2"><i class="bi bi-wind text-info me-2"></i>Calm Breathing Visualizer</h5>
+          <p class="text-secondary small mb-3">Sync your breath with the circle below before recording your ratings.</p>
+          
+          <div class="breathing-box my-3">
+            <div class="breathing-circle">
+              <span class="text-white small fw-bold">BREATHE</span>
+            </div>
+            <span class="badge bg-secondary bg-opacity-50 text-light small px-3 py-1">Inhale 4s &bull; Hold 7s &bull; Exhale 8s</span>
+          </div>
+
+          <div class="text-muted small">
+            <i class="bi bi-info-circle text-primary me-1"></i> Regulating your breath slows heart rate and activates the vagus nerve.
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Clinical Significance -->
+      <div class="card glass overflow-hidden card-hover">
+        <div class="img-container-overflow">
+          <img src="{{ url_for('static', filename='img/calm-nature-lake.jpg') }}" alt="Clinical Science" class="card-img-top-cover">
+        </div>
+        <div class="p-4">
+          <h5 class="fw-bold text-white mb-2"><i class="bi bi-journal-medical text-primary me-2"></i>Why Daily Metrics Matter</h5>
+          <p class="text-secondary small mb-3" style="line-height: 1.55;">
+            Mental health shifts happen gradually. By computing a weighted composite distress index, Agent 3 helps uncover early signs of burnout, sleep debt, and social withdrawal.
+          </p>
+          <ul class="text-secondary small ps-3 mb-0">
+            <li class="mb-1"><strong>Mood & Sleep:</strong> Primary drivers of emotional resilience.</li>
+            <li class="mb-1"><strong>Anxiety & Stress:</strong> Physiological arousal indicators.</li>
+            <li><strong>Isolation:</strong> Key predictor of persistent distress.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Card 3: Confidential Isolation -->
+      <div class="card glass p-4 card-hover">
+        <div class="d-flex align-items-center gap-3">
+          <img src="{{ url_for('static', filename='img/support-icon.svg') }}" alt="Confidential" width="48" height="48">
+          <div>
+            <h6 class="fw-bold text-white mb-1">Confidential & Isolated</h6>
+            <p class="text-muted small mb-0">Your check-in responses are strictly stored in your local encrypted profile.</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>

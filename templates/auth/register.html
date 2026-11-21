@@ -7,23 +7,26 @@
     <div class="card shadow-2-strong border-0 overflow-hidden glass p-0" style="border-radius: 20px;">
       <div class="row g-0">
         <!-- Left Side: Hero illustration & features -->
-        <div class="col-lg-6 d-none d-lg-flex flex-column justify-content-between p-5 bg-gradient-dark position-relative border-end border-secondary border-opacity-25" style="background: linear-gradient(145deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%);">
-          <div>
+        <div class="col-lg-6 d-none d-lg-flex flex-column justify-content-between p-5 position-relative border-end border-secondary border-opacity-25" style="background: linear-gradient(145deg, rgba(14, 21, 37, 0.94) 0%, rgba(9, 13, 24, 0.98) 100%);">
+          <!-- Ambient nature backdrop photo overlay -->
+          <div style="position: absolute; inset: 0; background-image: url('{{ url_for('static', filename='img/calm-nature-lake.jpg') }}'); background-size: cover; background-position: center; opacity: 0.14; pointer-events: none; mask-image: linear-gradient(to bottom, black 40%, transparent); -webkit-mask-image: linear-gradient(to bottom, black 40%, transparent);"></div>
+
+          <div class="position-relative" style="z-index: 1;">
             <div class="d-flex align-items-center gap-2 mb-3">
-              <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="CareAI" width="36" height="36" class="rounded-circle brand-glow">
+              <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="CareAI" width="38" height="38" class="rounded-circle brand-glow">
               <span class="fs-5 fw-bold text-light">Care<span class="text-primary">AI</span> Monitor</span>
             </div>
             <h3 class="fw-bold text-white mb-2">A Safe, Confidential Space</h3>
-            <p class="text-secondary small mb-4">
-              Create an account to begin tracking your mood, anxiety, stress, sleep quality, and social isolation with AI assistance.
+            <p class="text-secondary small mb-4" style="line-height: 1.6;">
+              Create your account to start tracking mood, anxiety, stress, sleep architecture, and social isolation with multi-agent clinical support.
             </p>
           </div>
 
-          <div class="text-center my-3">
-            <img src="{{ url_for('static', filename='img/auth-hero.svg') }}" alt="Mental Wellbeing AI Illustration" class="img-fluid hero-hover" style="max-height: 240px; filter: drop-shadow(0 12px 24px rgba(0,0,0,0.45));">
+          <div class="text-center my-3 position-relative" style="z-index: 1;">
+            <img src="{{ url_for('static', filename='img/auth-hero.svg') }}" alt="Mental Wellbeing AI Illustration" class="img-fluid hero-hover" style="max-height: 240px; filter: drop-shadow(0 14px 28px rgba(0,0,0,0.55));">
           </div>
 
-          <div class="p-3 rounded bg-dark bg-opacity-60 border border-secondary border-opacity-25 text-secondary small">
+          <div class="p-3 rounded bg-dark bg-opacity-60 border border-secondary border-opacity-25 text-secondary small position-relative" style="z-index: 1;">
             <div class="d-flex align-items-center gap-2 text-primary fw-semibold mb-1">
               <i class="bi bi-shield-lock-fill"></i> Privacy & Data Guarantee
             </div>

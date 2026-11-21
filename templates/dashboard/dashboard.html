@@ -3,18 +3,21 @@
 
 {% block content %}
 <div class="row g-4">
-  <!-- Top Welcome Banner with SVG illustration -->
+  <!-- Top Welcome Banner with Photo & SVG illustration -->
   <div class="col-12">
-    <div class="card glass border-0 overflow-hidden position-relative p-0" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border-radius: 18px;">
-      <div class="row g-0 align-items-center">
+    <div class="card border-0 overflow-hidden position-relative p-0" style="background: linear-gradient(135deg, rgba(14, 21, 37, 0.94) 0%, rgba(9, 13, 24, 0.98) 100%); border-radius: 20px;">
+      <!-- Subtle background image with gradient overlay -->
+      <div style="position: absolute; right: 0; top: 0; bottom: 0; width: 60%; background-image: url('{{ url_for('static', filename='img/calm-nature-lake.jpg') }}'); background-size: cover; background-position: center; opacity: 0.12; pointer-events: none; mask-image: linear-gradient(to right, transparent, black 60%); -webkit-mask-image: linear-gradient(to right, transparent, black 60%);"></div>
+
+      <div class="row g-0 align-items-center position-relative" style="z-index: 1;">
         <div class="col-lg-8 p-4 p-md-5">
           <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-primary bg-opacity-20 border border-primary border-opacity-30 text-primary small fw-semibold mb-3">
             <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true" style="width: 8px; height: 8px;"></span>
-            Six-Agent LangGraph System Active
+            Six-Agent LangGraph Cognitive Architecture Active
           </div>
           <h1 class="display-6 fw-bold mb-2 text-white">Welcome back, {{ current_user.username }} 👋</h1>
-          <p class="text-secondary fs-6 mb-4" style="max-width: 650px;">
-            Your confidential mental wellbeing center tracking daily indicators, dynamic distress trajectories, and personalized RAG coping recommendations.
+          <p class="text-secondary fs-6 mb-4" style="max-width: 650px; line-height: 1.6;">
+            Your private clinical wellbeing hub tracking daily mental health indicators, longitudinal distress trajectories, and personalized RAG coping recommendations.
           </p>
           <div class="d-flex flex-wrap gap-2">
             <a href="{{ url_for('checkin.checkin_page') }}" class="btn btn-primary d-inline-flex align-items-center gap-2 px-3 py-2 fw-semibold shadow-sm">
@@ -29,7 +32,7 @@
           </div>
         </div>
         <div class="col-lg-4 d-none d-lg-block text-center p-3">
-          <img src="{{ url_for('static', filename='img/dashboard-banner.svg') }}" alt="Dashboard Overview" class="img-fluid" style="max-height: 190px; filter: drop-shadow(0 10px 25px rgba(0,0,0,0.5));">
+          <img src="{{ url_for('static', filename='img/dashboard-banner.svg') }}" alt="Dashboard Overview" class="img-fluid hero-hover" style="max-height: 190px; filter: drop-shadow(0 12px 28px rgba(0,0,0,0.55));">
         </div>
       </div>
     </div>
@@ -150,7 +153,7 @@
     <div class="card glass p-4 h-100">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-          <h5 class="fw-bold mb-0">Daily Mental Health Indicators</h5>
+          <h5 class="fw-bold mb-0 text-white">Daily Mental Health Indicators</h5>
           <span class="text-muted small">Tracking Mood, Anxiety, Stress, Sleep Quality, and Social Isolation (Scale 1–10)</span>
         </div>
       </div>
@@ -164,11 +167,85 @@
   <div class="col-lg-4">
     <div class="card glass p-4 h-100">
       <div class="mb-3">
-        <h5 class="fw-bold mb-0">Distress Score History</h5>
+        <h5 class="fw-bold mb-0 text-white">Distress Score History</h5>
         <span class="text-muted small">Normalized composite score (0.00 – 1.00)</span>
       </div>
       <div style="position: relative; height: 320px;">
         <canvas id="distressChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Visual Feature Cards: Daily Mindfulness & Wellbeing Activities Hub -->
+  <div class="col-12">
+    <div class="d-flex justify-content-between align-items-center mb-1">
+      <div>
+        <h5 class="fw-bold text-white mb-0"><i class="bi bi-compass text-primary me-2"></i>Wellbeing & Mindfulness Activities</h5>
+        <span class="text-muted small">Evidence-based practices to restore calm, reduce cognitive load, and nurture emotional clarity</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3 col-sm-6">
+    <div class="card glass h-100 card-hover overflow-hidden">
+      <div class="img-container-overflow">
+        <img src="{{ url_for('static', filename='img/meditation-peace.jpg') }}" alt="Mindful Breathing" class="card-img-top-cover">
+      </div>
+      <div class="p-3">
+        <span class="badge bg-primary bg-opacity-25 text-primary small mb-2">Grounding</span>
+        <h6 class="fw-bold text-white mb-1">4-7-8 Breathing</h6>
+        <p class="text-secondary small mb-3">Slow parasympathetic nervous system activation to relieve acute stress.</p>
+        <a href="{{ url_for('chat.chat_page') }}" class="btn btn-sm btn-outline-primary w-100">
+          <i class="bi bi-play-fill"></i> Start with CareAI
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3 col-sm-6">
+    <div class="card glass h-100 card-hover overflow-hidden">
+      <div class="img-container-overflow">
+        <img src="{{ url_for('static', filename='img/sleep-night.jpg') }}" alt="Sleep Architecture" class="card-img-top-cover">
+      </div>
+      <div class="p-3">
+        <span class="badge bg-info bg-opacity-25 text-info small mb-2">Restorative</span>
+        <h6 class="fw-bold text-white mb-1">Night Sleep Hygiene</h6>
+        <p class="text-secondary small mb-3">Circadian rhythm stabilization, dim light, and digital sunset routines.</p>
+        <a href="{{ url_for('chat.chat_page') }}" class="btn btn-sm btn-outline-info w-100">
+          <i class="bi bi-moon-stars"></i> Sleep Checklist
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3 col-sm-6">
+    <div class="card glass h-100 card-hover overflow-hidden">
+      <div class="img-container-overflow">
+        <img src="{{ url_for('static', filename='img/stress-relief-walk.jpg') }}" alt="Sensory Grounding" class="card-img-top-cover">
+      </div>
+      <div class="p-3">
+        <span class="badge bg-success bg-opacity-25 text-success small mb-2">Sensory</span>
+        <h6 class="fw-bold text-white mb-1">5-4-3-2-1 Sensory Grounding</h6>
+        <p class="text-secondary small mb-3">Anchor attention in the immediate physical present to disrupt spiraling thoughts.</p>
+        <a href="{{ url_for('chat.chat_page') }}" class="btn btn-sm btn-outline-success w-100">
+          <i class="bi bi-eye"></i> Guided Practice
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3 col-sm-6">
+    <div class="card glass h-100 card-hover overflow-hidden">
+      <div class="img-container-overflow">
+        <img src="{{ url_for('static', filename='img/journal-desk.jpg') }}" alt="Expressive Journaling" class="card-img-top-cover">
+      </div>
+      <div class="p-3">
+        <span class="badge bg-warning bg-opacity-25 text-warning small mb-2">Catharsis</span>
+        <h6 class="fw-bold text-white mb-1">Reflective Journaling</h6>
+        <p class="text-secondary small mb-3">Process complex emotions, externalize worries, and track subjective tone.</p>
+        <a href="{{ url_for('journal.journal_page') }}" class="btn btn-sm btn-outline-warning w-100">
+          <i class="bi bi-pencil"></i> Open Journal
+        </a>
       </div>
     </div>
   </div>
@@ -180,12 +257,12 @@
         <div class="p-2 rounded bg-primary bg-opacity-20 text-primary">
           <i class="bi bi-cpu fs-5"></i>
         </div>
-        <h5 class="fw-bold mb-0">Agent 4: Longitudinal Monitoring Analysis</h5>
+        <h5 class="fw-bold mb-0 text-white">Agent 4: Longitudinal Monitoring Analysis</h5>
       </div>
-      <p class="text-light">{{ trend_data.summary }}</p>
+      <p class="text-light" style="line-height: 1.6;">{{ trend_data.summary }}</p>
 
       {% if trend_data.rolling_averages %}
-      <h6 class="text-muted small fw-bold text-uppercase mt-3 mb-2">7-Day Rolling Averages</h6>
+      <h6 class="text-muted small fw-bold text-uppercase mt-4 mb-2">7-Day Rolling Averages</h6>
       <div class="row g-2 text-center">
         <div class="col-4">
           <div class="bg-dark bg-opacity-50 p-2 rounded border border-secondary border-opacity-25">
@@ -236,7 +313,7 @@
           <div class="p-2 rounded bg-info bg-opacity-20 text-info">
             <i class="bi bi-book-half fs-5"></i>
           </div>
-          <h5 class="fw-bold mb-0">RAG-Grounded Wellbeing Guidance</h5>
+          <h5 class="fw-bold mb-0 text-white">RAG-Grounded Wellbeing Guidance</h5>
         </div>
         <img src="{{ url_for('static', filename='img/support-icon.svg') }}" alt="Support" width="36" height="36" class="opacity-75">
       </div>
@@ -247,7 +324,7 @@
             <span class="badge bg-primary bg-opacity-25 text-primary small">{{ res.topic }}</span>
             <span class="text-muted small"><i class="bi bi-file-earmark-text"></i> {{ res.source }}</span>
           </div>
-          <p class="small text-light mb-0 mt-2">{{ res.text[:220] }}...</p>
+          <p class="small text-light mb-0 mt-2" style="line-height: 1.5;">{{ res.text[:220] }}...</p>
         </div>
         {% endfor %}
       </div>
@@ -271,11 +348,11 @@ document.addEventListener("DOMContentLoaded", function() {
         data: {
           labels: labels,
           datasets: [
-            { label: "Mood (Higher=Better)", data: data.mood, borderColor: "#10b981", backgroundColor: "rgba(16, 185, 129, 0.1)", tension: 0.35, pointRadius: 4, fill: false },
-            { label: "Anxiety", data: data.anxiety, borderColor: "#f59e0b", backgroundColor: "rgba(245, 158, 11, 0.1)", tension: 0.35, pointRadius: 4, fill: false },
-            { label: "Stress", data: data.stress, borderColor: "#ef4444", backgroundColor: "rgba(239, 68, 68, 0.1)", tension: 0.35, pointRadius: 4, fill: false },
-            { label: "Sleep Quality", data: data.sleep_quality, borderColor: "#3b82f6", backgroundColor: "rgba(59, 130, 246, 0.1)", tension: 0.35, pointRadius: 4, fill: false },
-            { label: "Social Isolation", data: data.isolation_score, borderColor: "#a855f7", backgroundColor: "rgba(168, 85, 247, 0.1)", tension: 0.35, pointRadius: 4, fill: false }
+            { label: "Mood (Higher=Better)", data: data.mood, borderColor: "#10b981", backgroundColor: "rgba(16, 185, 129, 0.12)", tension: 0.35, pointRadius: 4, fill: false },
+            { label: "Anxiety", data: data.anxiety, borderColor: "#f59e0b", backgroundColor: "rgba(245, 158, 11, 0.12)", tension: 0.35, pointRadius: 4, fill: false },
+            { label: "Stress", data: data.stress, borderColor: "#ef4444", backgroundColor: "rgba(239, 68, 68, 0.12)", tension: 0.35, pointRadius: 4, fill: false },
+            { label: "Sleep Quality", data: data.sleep_quality, borderColor: "#3b82f6", backgroundColor: "rgba(59, 130, 246, 0.12)", tension: 0.35, pointRadius: 4, fill: false },
+            { label: "Social Isolation", data: data.isolation_score, borderColor: "#a855f7", backgroundColor: "rgba(168, 85, 247, 0.12)", tension: 0.35, pointRadius: 4, fill: false }
           ]
         },
         options: {
