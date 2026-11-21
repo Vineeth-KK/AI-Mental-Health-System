@@ -33,7 +33,7 @@ def create_app(config_class=Config):
             "rag_service": "active",
             "ollama_host": app.config.get("OLLAMA_HOST"),
             "ollama_model": app.config.get("OLLAMA_MODEL"),
-            "version": "v2.2-ollama-bridge"
+            "version": "v2.3-active-bridge"
         }), 200
 
     # Import and register blueprints

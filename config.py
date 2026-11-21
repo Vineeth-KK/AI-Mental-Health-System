@@ -41,7 +41,7 @@ class Config:
     configured_host = os.getenv('OLLAMA_HOST', '').strip()
     is_cloud_env = bool(os.getenv('RENDER') or os.getenv('PORT') or os.getenv('DYNO'))
 
-    if is_cloud_env and (not configured_host or '127.0.0.1' in configured_host or 'localhost' in configured_host):
+    if is_cloud_env and (not configured_host or '127.0.0.1' in configured_host or 'localhost' in configured_host or 'render-tyler-time-adsl' in configured_host):
         OLLAMA_HOST = 'https://fence-ross-spotlight-remains.trycloudflare.com'
     else:
         OLLAMA_HOST = configured_host or 'http://127.0.0.1:11434'
