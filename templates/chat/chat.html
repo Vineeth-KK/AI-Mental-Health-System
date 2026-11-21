@@ -181,6 +181,12 @@
 {% block scripts %}
 <script>
 let conversationHistory = [];
+{% if initial_messages %}
+try {
+  const rawInit = {{ initial_messages[-6:] | tojson | safe }};
+  conversationHistory = rawInit.map(m => ({ role: m.role, content: m.content }));
+} catch(e) {}
+{% endif %}
 
 const chatContainer = document.getElementById("chatMessages");
 const chatForm = document.getElementById("chatForm");
@@ -249,7 +255,7 @@ chatForm.addEventListener("submit", function(e) {
     sendBtn.disabled = false;
 
     const reply = data.response || "I am here with you. How can I help you further?";
-    const isOverride = data.safety_override || false;
+    const isOverride = data.priority_override === true;
 
     appendMessage("assistant", reply, isOverride);
 

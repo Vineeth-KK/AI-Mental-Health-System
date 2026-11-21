@@ -69,22 +69,21 @@ def chat():
     recent_db_msgs.reverse()
 
     formatted_messages = []
-    # If the user has recent messages within the last 3 hours, preserve conversational continuity
-    if recent_db_msgs:
+    # Prioritize active tab conversation session for context-aware multi-turn continuity
+    if isinstance(client_history, list) and client_history:
+        for h in client_history[-6:]:
+            if isinstance(h, dict) and h.get("content"):
+                role = h.get("role", "user")
+                if role in ("user", "assistant"):
+                    formatted_messages.append({"role": role, "content": str(h["content"]).strip()})
+    elif recent_db_msgs:
+        # Use recent DB messages only if within an active recent session window (30 minutes)
         last_time = recent_db_msgs[-1].timestamp
         now_time = datetime.utcnow()
-        if last_time and (now_time - last_time).total_seconds() < 10800:
-            for msg in recent_db_msgs[-10:]:
-                formatted_messages.append({"role": msg.role, "content": msg.content})
-        elif isinstance(client_history, list) and client_history:
-            # Active tab conversation window
-            for h in client_history[-8:]:
-                if isinstance(h, dict) and h.get("content"):
-                    formatted_messages.append({"role": h.get("role", "user"), "content": str(h["content"]).strip()})
-    elif isinstance(client_history, list) and client_history:
-        for h in client_history[-8:]:
-            if isinstance(h, dict) and h.get("content"):
-                formatted_messages.append({"role": h.get("role", "user"), "content": str(h["content"]).strip()})
+        if last_time and (now_time - last_time).total_seconds() < 1800:
+            for msg in recent_db_msgs[-6:]:
+                if msg.role in ("user", "assistant"):
+                    formatted_messages.append({"role": msg.role, "content": msg.content})
 
     # Add the new user message to the workflow input
     formatted_messages.append({"role": "user", "content": user_msg})

@@ -19,6 +19,11 @@ def journal_page():
         .limit(20)
         .all()
     )
+    from agents.distress import analyze_journal_sentiment
+    for e in entries:
+        if not hasattr(e, "sentiment_label") or not e.sentiment_label:
+            s_data = analyze_journal_sentiment(e.content)
+            e.sentiment_label = s_data.get("sentiment", "Reflective").capitalize()
     return render_template("journal/journal.html", entries=entries)
 
 @journal_bp.route("/api/journal", methods=["POST"])

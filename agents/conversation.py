@@ -20,7 +20,7 @@ SYSTEM_PROMPT = """You are CareAI, an intelligent, empathetic conversational AI 
 CORE BEHAVIOR & CONVERSATIONAL INTELLIGENCE:
 1. INTENT-DRIVEN ADAPTABILITY & NATURAL RESPONSES:
    - Identify the user's actual intent and address their exact question directly and naturally.
-   - GENERAL & FACTUAL QUESTIONS: If the user asks about science, history, coding, food, daily life, trivia, or general knowledge (e.g. "What is photosynthesis?", "Who was Einstein?", "Can you write a Python function?", "What should I eat for lunch?"), provide an accurate, clear, engaging, and informative answer. DO NOT force therapy concepts, mental health disclaimers, or breathing exercises into general or practical questions.
+   - GENERAL & FACTUAL QUESTIONS: If the user asks about science, history, coding, food, daily life, trivia, or general knowledge (e.g. "What is photosynthesis?", "Who was Einstein?", "Can you write a Python function?", "What should I eat for lunch?", "Why is the sky blue?"), provide an accurate, clear, engaging, and informative answer. DO NOT force therapy concepts, mental health disclaimers, or breathing exercises into general or practical questions.
    - CASUAL CONVERSATION & GREETINGS: If the user says "Hello", "How are you?", or engages in light conversation, respond warmly, naturally, and conversationally. DO NOT assume the user is overwhelmed or suffering.
    - ACADEMIC & PRODUCTIVITY CONCERNS: If the user asks about exams, study schedules, time management, or personal projects, provide structured, realistic, actionable strategies.
    - EMOTIONAL & WELLBEING CONCERNS: If the user expresses stress, sadness, loneliness, anxiety, burnout, or difficulty sleeping, respond with genuine emotional warmth, psychological depth, and practical coping techniques.
@@ -35,6 +35,7 @@ CORE BEHAVIOR & CONVERSATIONAL INTELLIGENCE:
 3. FRESHNESS & AUTHENTIC COMMUNICATION:
    - Never repeat the exact same sentences, greetings, or stock phrases across turns.
    - Avoid generic robotic disclaimers. Avoid starting turns with formulaic apologies like "I'm sorry you are feeling that way."
+   - Address the user naturally. You do NOT need to repeat the user's name on every single response.
    - Do NOT force breathing exercises into conversations unless directly requested or relevant to acute panic.
 
 4. ETHICAL BOUNDARIES & SAFETY:
@@ -51,9 +52,18 @@ def generate_llm_response(
     ollama_host: Optional[str] = None
 ) -> str:
     """Generates an empathetic, context-aware response via local Ollama LLM, with versatile multi-turn fallback."""
-    # Resolve model and host from config/env
-    model = ollama_model or os.getenv("OLLAMA_MODEL", "llama3.2")
-    host = ollama_host or os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
+    # Resolve model and host dynamically from Flask app config or environment
+    try:
+        from flask import current_app
+        if current_app:
+            model = ollama_model or current_app.config.get("OLLAMA_MODEL") or os.getenv("OLLAMA_MODEL", "llama3.2")
+            host = ollama_host or current_app.config.get("OLLAMA_HOST") or os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
+        else:
+            model = ollama_model or os.getenv("OLLAMA_MODEL", "llama3.2")
+            host = ollama_host or os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
+    except Exception:
+        model = ollama_model or os.getenv("OLLAMA_MODEL", "llama3.2")
+        host = ollama_host or os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
 
     # Build contextual prompt
     context_str = ""
@@ -64,7 +74,7 @@ def generate_llm_response(
 
     system_instruction = SYSTEM_PROMPT
     if user_name:
-        system_instruction += f"\nThe user's name is {user_name}. Use their name naturally and occasionally when appropriate, never formulaically on every turn."
+        system_instruction += f"\nThe user's name is {user_name}. Use their name sparingly and naturally when appropriate; do NOT formulaically prepend their name to the start of every response."
     if context_str:
         system_instruction += context_str
 
@@ -95,13 +105,13 @@ def generate_llm_response(
                 "num_ctx": 4096
             }
         }
-        with httpx.Client(timeout=40.0) as client:
+        with httpx.Client(timeout=45.0) as client:
             resp = client.post(url, json=payload)
             if resp.status_code == 200:
                 data = resp.json()
                 content = data.get("message", {}).get("content", "")
                 if content and content.strip():
-                    logger.info(f"Generated dynamic response via Ollama ({model}).")
+                    logger.info(f"Generated dynamic response via Ollama ({model}) for {len(messages)} messages.")
                     return content.strip()
             else:
                 logger.warning(f"Ollama returned status {resp.status_code}: {resp.text}")
@@ -174,6 +184,27 @@ def _generate_intelligent_fallback(
     # -------------------------------------------------------------
     # 2. GENERAL & FACTUAL QUESTIONS (Science, Tech, Food, Daily Life)
     # -------------------------------------------------------------
+    # Food, meals, cooking, dinner, lunch, breakfast
+    if any(k in user_text for k in ["what should i eat", "lunch", "dinner", "breakfast", "healthy meal", "what to eat", "recipe", "cooking"]):
+        return (
+            f"Here are a few quick, nutritious, and balanced ideas depending on what you're in the mood for{name_clause}:\n\n"
+            "• **Quick & Warm (15 mins):** A wholesome grain bowl with quinoa or brown rice, roasted/sautéed vegetables, and a lean protein (eggs, tofu, chicken, or chickpeas) with a light tahini or soy-ginger drizzle.\n"
+            "• **Light & Fresh:** Mediterranean salad bowl with mixed greens, crisp cucumbers, cherry tomatoes, kalamata olives, feta, and extra virgin olive oil paired with warm pita.\n"
+            "• **Comforting & Grounding:** A warm lentil or vegetable soup accompanied by toasted whole-grain sourdough.\n"
+            "• **Fast Energy:** A wrap with mashed avocado, hummus, sliced peppers, and leafy greens.\n\n"
+            "Are you looking for something fast under 15 minutes, or cooking with specific ingredients in your pantry?"
+        )
+
+    # Technology, coding, programming inquiries
+    if any(k in user_text for k in ["python", "code", "algorithm", "programming", "function", "binary search", "javascript", "data structure"]):
+        return (
+            f"Here is a clear breakdown of that technical concept{name_clause}:\n\n"
+            "• **Core Logic:** In computer science, efficient solutions minimize computational complexity by avoiding redundant operations (e.g. logarithmic $\\mathcal{O}(\\log n)$ divide-and-conquer vs linear $\\mathcal{O}(n)$ scans).\n"
+            "• **Implementation Best Practices:** Keep functions pure, handle edge cases (empty inputs, out-of-bounds indices), and write clean, readable code with descriptive variable names.\n\n"
+            "Are you writing a specific function or working on a particular problem or project right now?"
+        )
+
+    # Specific common factual topics
     if "photosynthesis" in user_text:
         return (
             f"Photosynthesis is the biological process by which green plants, algae, and certain bacteria convert sunlight into chemical energy{name_clause}.\n\n"
@@ -204,28 +235,27 @@ def _generate_intelligent_fallback(
             "It is essentially nature's recycling process before winter dormancy."
         )
 
-    if "python" in user_text and any(k in user_text for k in ["reverse", "string", "function", "code"]):
+    if "sky blue" in user_text or "sky is blue" in user_text:
         return (
-            f"In Python, reversing a string can be done cleanly in several ways{name_clause}:\n\n"
-            "```python\n"
-            "# 1. Slicing (Fastest & most idiomatic)\n"
-            "def reverse_string(s: str) -> str:\n"
-            "    return s[::-1]\n\n"
-            "# 2. Using reversed() and join()\n"
-            "def reverse_string_builtin(s: str) -> str:\n"
-            "    return ''.join(reversed(s))\n"
-            "```\n\n"
-            "The slicing method `s[::-1]` runs in $\\mathcal{O}(n)$ time and creates a new reversed string. Is there a specific algorithm or problem you're working on?"
+            f"The sky appears blue due to a phenomenon called **Rayleigh scattering**{name_clause}:\n\n"
+            "1. **Sunlight Composition:** Sunlight appears white, but is actually a blend of all colors of the visible spectrum, each with different wavelengths.\n"
+            "2. **Atmospheric Scattering:** As sunlight reaches Earth's atmosphere, it collides with small nitrogen and oxygen molecules. Shorter wavelengths (blue and violet) scatter in every direction far more efficiently than longer wavelengths (red and yellow).\n"
+            "3. **Human Perception:** Although violet light scatters even more than blue light, our eyes are significantly more sensitive to blue wavelengths, and sunlight contains more blue than violet.\n\n"
+            "At sunset, sunlight travels through a much thicker slice of atmosphere, scattering away the blue and allowing the longer red and orange wavelengths to reach our eyes."
         )
 
-    if any(k in user_text for k in ["what should i eat", "lunch", "dinner", "healthy meal", "what to eat"]):
+    # General factual inquiry detection
+    is_factual_inquiry = any(clean_text.startswith(prefix) for prefix in [
+        "what is", "what are", "why is", "why are", "why do", "why does",
+        "how does", "how do", "how is", "who is", "who was", "explain", "tell me about", "can you explain"
+    ])
+    if is_factual_inquiry and not any(k in user_text for k in ["stress", "anxiety", "depress", "lonel", "panic", "suicid", "overwhelm"]):
+        subject_phrase = last_user_msg.strip("?!.,'\"")
         return (
-            f"Here are a few quick, nutritious, and satisfying ideas depending on what you have on hand{name_clause}:\n\n"
-            "• **Quick & Warm:** A wholesome grain bowl with quinoa or brown rice, roasted or sauteed veggies, and a protein (tofu, chicken, chickpeas, or an egg) with a tahini or soy-ginger drizzle.\n"
-            "• **Light & Fresh:** Mediterranean salad with mixed greens, cucumbers, cherry tomatoes, olives, feta, and olive oil with whole wheat pita.\n"
-            "• **Cozy Comfort:** A warm vegetable or lentil soup paired with toasted sourdough bread.\n"
-            "• **Quick Energy:** A balanced whole-grain wrap with avocado, hummus, and crisp vegetables.\n\n"
-            "Are you looking for something fast in under 10 minutes, or cooking with specific ingredients in your kitchen?"
+            f"That is an interesting topic to explore{name_clause}! Regarding **{subject_phrase}**:\n\n"
+            "• **Core Principles:** This area involves foundational concepts and mechanisms that explain how it functions and developed.\n"
+            "• **Key Applications:** Understanding these mechanisms helps connect the theoretical ideas to real-world observations and practical context.\n\n"
+            "Would you like to explore the foundational concepts in detail, or focus on a specific aspect of this topic?"
         )
 
     # -------------------------------------------------------------
