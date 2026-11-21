@@ -34,6 +34,10 @@ class Config:
 
     # Multi-Agent & RAG settings
     OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'llama3.2')
-    OLLAMA_HOST = os.getenv('OLLAMA_HOST', 'http://127.0.0.1:11434')
+    # If running on Render cloud and OLLAMA_HOST is not explicitly set, default to active tunnel
+    if os.getenv('RENDER') and not os.getenv('OLLAMA_HOST'):
+        OLLAMA_HOST = 'https://render-tyler-time-adsl.trycloudflare.com'
+    else:
+        OLLAMA_HOST = os.getenv('OLLAMA_HOST', 'http://127.0.0.1:11434')
     CHROMA_DB_PATH = os.path.join(basedir, "instance", "chroma_db")
 

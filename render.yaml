@@ -12,3 +12,7 @@ services:
         generateValue: true
       - key: WTF_CSRF_ENABLED
         value: "true"
+      - key: OLLAMA_HOST
+        value: "https://render-tyler-time-adsl.trycloudflare.com"
+      - key: OLLAMA_MODEL
+        value: "llama3.2"

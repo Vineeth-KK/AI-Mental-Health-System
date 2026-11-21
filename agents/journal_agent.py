@@ -352,12 +352,29 @@ def journal_agent_node(state: AgentState) -> Dict[str, Any]:
     ml_classification = state.get("ml_classification")
     recommendations = state.get("recommendations", [])
 
+    # Dynamically resolve host and model from app config or environment
+    host = "http://127.0.0.1:11434"
+    model = "llama3.2"
+    try:
+        from flask import current_app
+        if current_app:
+            host = current_app.config.get("OLLAMA_HOST") or os.getenv("OLLAMA_HOST", host)
+            model = current_app.config.get("OLLAMA_MODEL") or os.getenv("OLLAMA_MODEL", model)
+        else:
+            host = os.getenv("OLLAMA_HOST", host)
+            model = os.getenv("OLLAMA_MODEL", model)
+    except Exception:
+        host = os.getenv("OLLAMA_HOST", host)
+        model = os.getenv("OLLAMA_MODEL", model)
+
     analysis = analyze_journal_entry(
         journal_text=journal_text,
         user_name=user_name,
         sentiment_data=sentiment_data,
         ml_classification=ml_classification,
-        recommendations=recommendations
+        recommendations=recommendations,
+        ollama_model=model,
+        ollama_host=host
     )
 
     return {
