@@ -11,14 +11,14 @@ They are NOT clinical diagnoses and must not override the existing Safety Agent 
 
 | Metric | Logistic Regression | DistilBERT |
 |--------|--------------------:|----------:|
-| Accuracy | 0.7918 | N/A |
-| F1 (Macro) | 0.7741 | N/A |
-| F1 (Weighted) | 0.789 | N/A |
-| Precision (Macro) | 0.7676 | N/A |
-| Recall (Macro) | 0.7859 | N/A |
+| Accuracy | 0.7918 | 0.8269 |
+| F1 (Macro) | 0.7741 | 0.8163 |
+| F1 (Weighted) | 0.789 | 0.8266 |
+| Precision (Macro) | 0.7676 | 0.8098 |
+| Recall (Macro) | 0.7859 | 0.826 |
 
-## Recommended Model: **Logistic Regression**
-DistilBERT model not evaluated
+## Recommended Model: **DistilBERT**
+DistilBERT achieves F1 macro 0.8163 vs LR 0.7741
 
 ## Integration Notes
 - The inference module (`ml/inference.py`) uses the best model automatically.
@@ -35,7 +35,10 @@ DistilBERT model not evaluated
 - **Suicidal**: P=0.706 R=0.729 F1=0.717 (n=1680.0)
 
 ### DistilBERT
-Not available
+- **Normal**: P=0.940 R=0.932 F1=0.936 (n=2723.0)
+- **Depression**: P=0.791 R=0.705 F1=0.746 (n=2141.0)
+- **Anxiety**: P=0.794 R=0.881 F1=0.835 (n=799.0)
+- **Suicidal**: P=0.714 R=0.786 F1=0.748 (n=1680.0)
 
 ## Files
 - `lr_model.pkl` — Logistic Regression model

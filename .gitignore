@@ -27,3 +27,8 @@ chroma_db/
 # Logs
 logs/
 *.log
+
+# Large Model Weights (>100MB, excluded from standard git)
+*.safetensors
+*.pt
+*.bin
