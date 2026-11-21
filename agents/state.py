@@ -12,6 +12,7 @@ class AgentState(TypedDict, total=False):
     historical_checkins: List[Dict[str, Any]]
     journal_text: Optional[str]
     journal_sentiment: Optional[Dict[str, Any]]
+    journal_analysis: Optional[Dict[str, Any]]
     distress_score: Optional[float]
     distress_level: Optional[str]  # 'low', 'moderate', 'high', 'critical'
     distress_breakdown: Optional[Dict[str, Any]]

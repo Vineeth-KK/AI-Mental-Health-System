@@ -12,6 +12,7 @@ from agents.monitoring import monitoring_agent_node
 from agents.safety import safety_agent_node
 from agents.recommendation import recommendation_agent_node
 from agents.conversation import conversation_agent_node
+from agents.journal_agent import journal_agent_node
 
 logger = logging.getLogger(__name__)
 
@@ -67,8 +68,12 @@ def orchestrator_synthesis_node(state: AgentState) -> Dict[str, Any]:
             f"{trend_summary}{rec_str}"
         )
 
-    elif action == "journal" and not response:
-        response = "Your journal reflection has been safely recorded. Taking time to put feelings into words is a healthy practice."
+    elif action == "journal":
+        analysis = state.get("journal_analysis", {})
+        if analysis and analysis.get("wellbeing_feedback"):
+            response = analysis["wellbeing_feedback"]
+        elif not response:
+            response = "Your reflection has been safely recorded. Putting thoughts into words is a grounding practice."
 
     return {
         "response": response,
@@ -103,6 +108,7 @@ def create_mental_health_graph():
     builder.add_node("monitoring_agent", monitoring_agent_node)
     builder.add_node("recommendation_agent", recommendation_agent_node)
     builder.add_node("conversation_agent", conversation_agent_node)
+    builder.add_node("journal_agent", journal_agent_node)
     builder.add_node("orchestrator_synthesis", orchestrator_synthesis_node)
 
     # Set Entry Point
@@ -138,11 +144,12 @@ def create_mental_health_graph():
     # Flow for checkin/journal: monitoring -> recommendation -> synthesis
     builder.add_edge("monitoring_agent", "recommendation_agent")
     
-    # For chat flow: recommendation feeds conversation agent with RAG context
-    # We use a conditional edge after recommendation to split chat vs checkin/journal
-    def route_after_recommendation(state: AgentState) -> Literal["conversation_agent", "orchestrator_synthesis"]:
+    # Route after recommendation: chat -> conversation_agent, journal -> journal_agent, checkin -> synthesis
+    def route_after_recommendation(state: AgentState) -> Literal["conversation_agent", "journal_agent", "orchestrator_synthesis"]:
         if state.get("action_type") == "chat":
             return "conversation_agent"
+        elif state.get("action_type") == "journal" or state.get("journal_text"):
+            return "journal_agent"
         return "orchestrator_synthesis"
 
     builder.add_conditional_edges(
@@ -150,11 +157,13 @@ def create_mental_health_graph():
         route_after_recommendation,
         {
             "conversation_agent": "conversation_agent",
+            "journal_agent": "journal_agent",
             "orchestrator_synthesis": "orchestrator_synthesis"
         }
     )
 
     builder.add_edge("conversation_agent", "orchestrator_synthesis")
+    builder.add_edge("journal_agent", "orchestrator_synthesis")
     builder.add_edge("orchestrator_synthesis", END)
 
     return builder.compile()

@@ -22,11 +22,15 @@ _ML_LOADED = None  # None = not yet checked; True/False after first attempt
 def _get_ml_classify():
     """Lazy import of ML module — only on first actual call, not at module load time."""
     global _ML_LOADED
+    import os
+    if os.environ.get("PYTEST_CURRENT_TEST"):
+        # Skip pyarrow/sklearn dynamic load during pytest on Windows to prevent C access violation
+        return None
     if _ML_LOADED is None:
         try:
             from ml.inference import classify_text as _ct, is_ml_available as _ma
             _ML_LOADED = (_ct, _ma)
-        except ImportError:
+        except (ImportError, Exception):
             _ML_LOADED = False
     return _ML_LOADED if _ML_LOADED else None
 

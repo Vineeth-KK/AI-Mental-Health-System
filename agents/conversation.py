@@ -55,7 +55,7 @@ def generate_llm_response(
 
     system_instruction = SYSTEM_PROMPT
     if user_name:
-        system_instruction += f"\nThe user's name is {user_name}. Use it naturally and sparingly."
+        system_instruction += f"\nThe user's name is {user_name}. Always address the user warmly by their name ({user_name}) in your response."
     if context_str:
         system_instruction += context_str
 

@@ -41,14 +41,29 @@ def create_journal():
         content=content
     )
 
+    sentiment_data = agent_result.get("journal_sentiment", {})
+    analysis_data = agent_result.get("journal_analysis") or {}
+
+    sentiment_label = analysis_data.get("sentiment")
+    if not sentiment_label:
+        if isinstance(sentiment_data, dict):
+            sentiment_label = sentiment_data.get("sentiment", "Neutral").capitalize()
+        else:
+            sentiment_label = str(sentiment_data).capitalize()
+
+    response_text = analysis_data.get("wellbeing_feedback") or agent_result.get("response", "")
+
     return jsonify({
+        "success": True,
         "message": "Journal saved and evaluated",
         "id": entry.id,
-        "sentiment": agent_result.get("journal_sentiment", {}),
+        "sentiment": sentiment_data,
+        "sentiment_label": sentiment_label,
+        "analysis": analysis_data,
         "safety_alert": agent_result.get("safety_alert", {}),
         "priority_override": agent_result.get("priority_override", False),
         "recommendations": agent_result.get("recommendations", []),
-        "response": agent_result.get("response", "")
+        "response": response_text
     }), 201
 
 @journal_bp.route("/api/journals", methods=["GET"])
