@@ -11,6 +11,9 @@ class ChatMessage(db.Model):
     content = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     is_safety_override = db.Column(db.Boolean, default=False)
+    distress_score = db.Column(db.Float, nullable=True)
+    sentiment = db.Column(db.String(32), nullable=True)
+    detected_emotions = db.Column(db.String(255), nullable=True)
 
     user = db.relationship("User", backref=db.backref("chat_messages", lazy=True, cascade="all, delete-orphan"))
 
@@ -20,7 +23,10 @@ class ChatMessage(db.Model):
             "role": self.role,
             "content": self.content,
             "timestamp": self.timestamp.isoformat() if self.timestamp else None,
-            "is_safety_override": self.is_safety_override
+            "is_safety_override": self.is_safety_override,
+            "distress_score": self.distress_score,
+            "sentiment": self.sentiment,
+            "detected_emotions": self.detected_emotions
         }
 
     def __repr__(self):

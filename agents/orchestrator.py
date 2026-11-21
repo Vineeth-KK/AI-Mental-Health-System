@@ -72,5 +72,10 @@ class Orchestrator:
         }
         return self.run_workflow(state)
 
+    def handle_narrative_synthesis(self, user_id: int, time_window_days: int = 30) -> Dict[str, Any]:
+        """Invokes the Narrative Synthesis Agent to evaluate longitudinal trajectory across multiple sessions."""
+        from agents.narrative_agent import synthesize_crisis_narrative
+        return synthesize_crisis_narrative(user_id=user_id, time_window_days=time_window_days)
+
 # Singleton orchestrator instance
 orchestrator = Orchestrator()

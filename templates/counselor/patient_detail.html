@@ -1,0 +1,457 @@
+{% extends "base.html" %}
+{% block title %}Patient File #{{ patient.id }} – Counselor Terminal{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-12">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-3">
+      <div class="d-flex align-items-center gap-3">
+        <a href="{{ url_for('counselor.counselor_dashboard') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-2">
+          <i class="bi bi-arrow-left me-1"></i> Return to Triage
+        </a>
+        <div>
+          <h3 class="fw-bold text-white mb-0">Patient File: <span style="color: var(--accent-warm);">{{ patient.username }}</span> (ID #{{ patient.id }})</h3>
+          <span class="text-muted small">Registered: {{ patient.registered_on.strftime('%B %d, %Y') if patient.registered_on else '' }} &bull; Role: {{ patient.role }}</span>
+        </div>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <button type="button" id="btnGenNarrative" class="btn btn-outline-info rounded-pill px-3 py-2">
+          <i class="bi bi-bezier2 me-1"></i> Refresh Crisis Narrative
+        </button>
+        <button type="button" id="btnGenCaseSummary" class="btn-mira-primary px-4 py-2">
+          <i class="bi bi-file-earmark-medical me-1"></i> Generate AI Case Summary
+        </button>
+      </div>
+    </div>
+
+    <!-- Alert Banner If Active Alerts -->
+    {% set unresolved_alerts = alerts|selectattr("status", "equalto", "unresolved")|list %}
+    {% if unresolved_alerts|length > 0 %}
+    <div class="alert alert-danger border-danger rounded-4 p-3 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-3">
+        <i class="bi bi-exclamation-triangle-fill fs-3 text-danger"></i>
+        <div>
+          <strong class="d-block">Patient Has {{ unresolved_alerts|length }} Unresolved Safety Alert(s)</strong>
+          <span class="small opacity-75">Recent trigger: {{ unresolved_alerts[0].message }}</span>
+        </div>
+      </div>
+      <button type="button" class="btn btn-sm btn-danger rounded-pill px-3" onclick="scrollToAlerts()">Review Alerts</button>
+    </div>
+    {% endif %}
+
+    <!-- Section A: Crisis Narrative Synthesis -->
+    <div class="card p-4 mb-4">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-journal-medical text-warning fs-5"></i>
+          <h5 class="fw-bold text-white mb-0">Cross-Entry Crisis Narrative Synthesis</h5>
+        </div>
+        <span class="pill-badge pill-badge-warm small py-1 px-3">Agent: Narrative Synthesis</span>
+      </div>
+
+      <div id="narrativeLoading" class="text-center py-4 d-none">
+        <span class="spinner-border spinner-border-sm me-2 text-info"></span>
+        <span class="text-muted small">Synthesizing longitudinal narrative across journals, chats, and check-ins...</span>
+      </div>
+
+      <div id="narrativeContent">
+        <div class="row g-3">
+          <div class="col-lg-8">
+            <div class="p-3 rounded-4 mb-3" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border);">
+              <span class="text-muted small d-block mb-1 text-uppercase fw-semibold" style="letter-spacing: 0.5px; font-size: 0.75rem;">Timeline Summary</span>
+              <p id="narrativeSummaryText" class="text-light mb-0 small" style="line-height: 1.7;">
+                Click "Refresh Crisis Narrative" to run a cross-entry synthesis across the patient's past 30 days of reflections, chat signals, and distress regressions.
+              </p>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="p-3 rounded-4 mb-3" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border);">
+              <span class="text-muted small d-block mb-2 text-uppercase fw-semibold" style="letter-spacing: 0.5px; font-size: 0.75rem;">Recurring Emotional Themes</span>
+              <div id="narrativeThemesContainer" class="d-flex flex-column gap-1">
+                <span class="text-muted small fst-italic">Pending analysis...</span>
+              </div>
+            </div>
+            <div class="p-3 rounded-4" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border);">
+              <span class="text-muted small d-block mb-1 text-uppercase fw-semibold" style="letter-spacing: 0.5px; font-size: 0.75rem;">Trajectory Arc</span>
+              <div id="narrativeTrajectoryBadge" class="mt-1">
+                <span class="badge bg-secondary rounded-pill px-3 py-1">Baseline</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section B: AI Clinical Case Summary Workstation -->
+    <div id="caseSummaryCard" class="card p-4 mb-4 d-none">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-file-earmark-medical-fill text-info fs-5"></i>
+          <h5 class="fw-bold text-white mb-0" id="summaryViewTitle">Clinical Case Synthesis Generator</h5>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-warning bg-opacity-25 text-warning rounded-pill px-3 py-1" id="summaryStatusBadge">Draft</span>
+          <button type="button" class="btn btn-sm btn-success rounded-pill px-3" id="btnSaveSummary">
+            <i class="bi bi-check2-circle me-1"></i> Save & Approve Summary
+          </button>
+        </div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label text-light small fw-semibold">1. Case Overview</label>
+          <textarea id="sumOverview" class="form-control bg-dark text-light border-secondary border-opacity-25 small mb-3" rows="3"></textarea>
+
+          <label class="form-label text-light small fw-semibold">2. Reported Concerns (Explicit Patient Disclosures)</label>
+          <textarea id="sumConcerns" class="form-control bg-dark text-light border-secondary border-opacity-25 small mb-3" rows="3"></textarea>
+
+          <label class="form-label text-light small fw-semibold">3. Recurring Emotional Patterns</label>
+          <textarea id="sumPatterns" class="form-control bg-dark text-light border-secondary border-opacity-25 small mb-3" rows="3"></textarea>
+
+          <label class="form-label text-light small fw-semibold">4. Significant Changes Over Time</label>
+          <textarea id="sumChanges" class="form-control bg-dark text-light border-secondary border-opacity-25 small mb-3" rows="3"></textarea>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label text-light small fw-semibold">5. Relevant Historical Events</label>
+          <textarea id="sumHistory" class="form-control bg-dark text-light border-secondary border-opacity-25 small mb-3" rows="3"></textarea>
+
+          <label class="form-label text-light small fw-semibold">6. Risk Indicators & Alert History</label>
+          <textarea id="sumRisks" class="form-control bg-dark text-light border-secondary border-opacity-25 small mb-3" rows="3"></textarea>
+
+          <label class="form-label text-light small fw-semibold">7. Recommended Areas for Human Review</label>
+          <textarea id="sumRecs" class="form-control bg-dark text-light border-secondary border-opacity-25 small mb-3" rows="3"></textarea>
+
+          <label class="form-label text-light small fw-semibold">Counselor Clinical Addendum / Notes</label>
+          <textarea id="sumCounselorEdits" class="form-control bg-dark text-light border-secondary border-opacity-25 small" rows="3" placeholder="Enter personal clinical notes, diagnostic impressions, or treatment plan focus..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section C: Longitudinal Data Tabs -->
+    <div class="card p-4">
+      <ul class="nav nav-pills mb-4 gap-2" id="patientTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active rounded-pill px-4" id="tab-checkins" data-bs-toggle="pill" data-bs-target="#content-checkins" type="button" role="tab">
+            <i class="bi bi-heart-pulse me-1"></i> Daily Check-Ins ({{ checkins|length }})
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link rounded-pill px-4" id="tab-chat" data-bs-toggle="pill" data-bs-target="#content-chat" type="button" role="tab">
+            <i class="bi bi-chat-dots me-1"></i> Conversational Signals ({{ conv_signals|length }})
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link rounded-pill px-4" id="tab-journal" data-bs-toggle="pill" data-bs-target="#content-journal" type="button" role="tab">
+            <i class="bi bi-journal-text me-1"></i> Private Journal Entries ({{ journals|length }})
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link rounded-pill px-4" id="tab-alerts" data-bs-toggle="pill" data-bs-target="#content-alerts" type="button" role="tab">
+            <i class="bi bi-bell me-1"></i> Safety Alerts ({{ alerts|length }})
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link rounded-pill px-4" id="tab-saved-summaries" data-bs-toggle="pill" data-bs-target="#content-saved-summaries" type="button" role="tab">
+            <i class="bi bi-archive me-1"></i> Saved Case Notes ({{ case_summaries|length }})
+          </button>
+        </li>
+      </ul>
+
+      <div class="tab-content" id="patientTabsContent">
+        <!-- Tab 1: Check-Ins -->
+        <div class="tab-pane fade show active" id="content-checkins" role="tabpanel">
+          {% if checkins and checkins|length > 0 %}
+          <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0" style="background: transparent;">
+              <thead>
+                <tr class="text-muted small text-uppercase">
+                  <th>Date</th>
+                  <th>Mood (1-10)</th>
+                  <th>Anxiety</th>
+                  <th>Stress</th>
+                  <th>Sleep</th>
+                  <th>Isolation</th>
+                  <th>Distress Score</th>
+                  <th>Level</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for c in checkins %}
+                <tr class="border-secondary border-opacity-10 small">
+                  <td>{{ c.timestamp[:16] }}</td>
+                  <td>{{ c.mood }}</td>
+                  <td>{{ c.anxiety }}</td>
+                  <td>{{ c.stress }}</td>
+                  <td>{{ c.sleep_quality }}</td>
+                  <td>{{ c.isolation_score }}</td>
+                  <td class="fw-bold">{{ c.distress_score }}</td>
+                  <td><span class="badge rounded-pill bg-secondary px-2 py-1">{{ c.distress_level }}</span></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <p class="text-muted small mb-0">No daily check-ins recorded for this patient.</p>
+          {% endif %}
+        </div>
+
+        <!-- Tab 2: Conversational Signals -->
+        <div class="tab-pane fade" id="content-chat" role="tabpanel">
+          {% if conv_signals and conv_signals|length > 0 %}
+          <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0" style="background: transparent;">
+              <thead>
+                <tr class="text-muted small text-uppercase">
+                  <th>Timestamp</th>
+                  <th>Message Excerpt</th>
+                  <th>Distress Score</th>
+                  <th>Sentiment</th>
+                  <th>Detected Emotions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for cs in conv_signals %}
+                <tr class="border-secondary border-opacity-10 small">
+                  <td class="text-muted">{{ cs.timestamp[:16] }}</td>
+                  <td style="max-width: 320px;">"{{ cs.content }}"</td>
+                  <td class="fw-bold text-light">{{ cs.distress_score }}</td>
+                  <td><span class="badge rounded-pill bg-secondary px-2 py-1">{{ cs.sentiment }}</span></td>
+                  <td><span class="badge rounded-pill bg-info bg-opacity-25 text-info px-2 py-1">{{ cs.detected_emotions or 'None' }}</span></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <p class="text-muted small mb-0">No conversational distress signals captured yet.</p>
+          {% endif %}
+        </div>
+
+        <!-- Tab 3: Journal Entries -->
+        <div class="tab-pane fade" id="content-journal" role="tabpanel">
+          {% if journals and journals|length > 0 %}
+          <div class="d-flex flex-column gap-3">
+            {% for j in journals %}
+            <div class="p-3 rounded-4" style="background: rgba(255, 255, 255, 0.025); border: 1px solid var(--card-border);">
+              <div class="d-flex justify-content-between text-muted small mb-2">
+                <span><i class="bi bi-calendar3 me-1"></i> {{ j.created_at.strftime('%B %d, %Y at %H:%M') if j.created_at else '' }}</span>
+                <span class="pill-badge pill-badge-warm small py-1 px-2">ID #{{ j.id }}</span>
+              </div>
+              <p class="text-light mb-0 small" style="white-space: pre-wrap; line-height: 1.65;">{{ j.content }}</p>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-muted small mb-0">No reflective journal entries recorded for this patient.</p>
+          {% endif %}
+        </div>
+
+        <!-- Tab 4: Alerts -->
+        <div class="tab-pane fade" id="content-alerts" role="tabpanel">
+          {% if alerts and alerts|length > 0 %}
+          <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0" style="background: transparent;">
+              <thead>
+                <tr class="text-muted small text-uppercase">
+                  <th>ID</th>
+                  <th>Severity</th>
+                  <th>Trigger Reason</th>
+                  <th>Created At</th>
+                  <th>Status</th>
+                  <th>Counselor Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for a in alerts %}
+                <tr class="border-secondary border-opacity-10 small">
+                  <td>#{{ a.id }}</td>
+                  <td><span class="badge bg-danger rounded-pill px-2 py-1">{{ a.risk_level }}</span></td>
+                  <td>{{ a.message }}</td>
+                  <td>{{ a.created_at.strftime('%Y-%m-%d %H:%M') if a.created_at else '' }}</td>
+                  <td><span class="badge bg-secondary rounded-pill px-2 py-1">{{ a.status or 'unresolved' }}</span></td>
+                  <td class="text-muted">{{ a.counselor_notes or 'None' }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <p class="text-muted small mb-0">No safety alerts flagged for this patient.</p>
+          {% endif %}
+        </div>
+
+        <!-- Tab 5: Saved Case Summaries -->
+        <div class="tab-pane fade" id="content-saved-summaries" role="tabpanel">
+          {% if case_summaries and case_summaries|length > 0 %}
+          <div class="d-flex flex-column gap-3">
+            {% for cs in case_summaries %}
+            <div class="p-3 rounded-4" style="background: rgba(255, 255, 255, 0.025); border: 1px solid var(--card-border);">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="fw-bold text-white mb-0">{{ cs.title }}</h6>
+                <span class="badge bg-success bg-opacity-25 text-success rounded-pill px-3 py-1">{{ cs.status|upper }}</span>
+              </div>
+              <div class="text-muted small mb-2">Created: {{ cs.created_at.strftime('%B %d, %Y at %H:%M') if cs.created_at else '' }}</div>
+              <p class="text-light small mb-2" style="white-space: pre-wrap; line-height: 1.6;">{{ cs.overview }}</p>
+              {% if cs.counselor_edits %}
+              <div class="p-2 rounded-3 mt-2" style="background: rgba(255, 188, 125, 0.08); border-left: 2px solid var(--accent-warm);">
+                <span class="small fw-semibold text-warning d-block">Counselor Notes:</span>
+                <span class="small text-light">{{ cs.counselor_edits }}</span>
+              </div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-muted small mb-0">No approved case notes saved yet. Click "Generate AI Case Summary" to compile one.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const PATIENT_ID = {{ patient.id }};
+
+function scrollToAlerts() {
+  document.getElementById("tab-alerts").click();
+  document.getElementById("patientTabs").scrollIntoView({ behavior: "smooth" });
+}
+
+// 1. Refresh Crisis Narrative
+document.getElementById("btnGenNarrative").addEventListener("click", function() {
+  const btn = this;
+  btn.disabled = true;
+  document.getElementById("narrativeLoading").classList.remove("d-none");
+
+  fetch(`/api/counselor/narrative/${PATIENT_ID}`)
+    .then(r => r.json())
+    .then(data => {
+      btn.disabled = false;
+      document.getElementById("narrativeLoading").classList.add("d-none");
+
+      if (data.narrative_summary) {
+        document.getElementById("narrativeSummaryText").innerText = data.narrative_summary;
+      }
+      
+      const themesBox = document.getElementById("narrativeThemesContainer");
+      if (data.recurring_themes && data.recurring_themes.length > 0) {
+        themesBox.innerHTML = data.recurring_themes.map(t => 
+          `<span class="badge bg-dark text-light border border-secondary border-opacity-25 rounded-pill px-3 py-2 text-start small mb-1"><i class="bi bi-tag text-info me-1"></i>${escapeHtml(t)}</span>`
+        ).join("");
+      } else {
+        themesBox.innerHTML = `<span class="text-muted small fst-italic">None identified yet.</span>`;
+      }
+
+      const trajBadge = document.getElementById("narrativeTrajectoryBadge");
+      const traj = data.trajectory || "stable";
+      if (traj === "improving") {
+        trajBadge.innerHTML = `<span class="badge bg-success bg-opacity-25 text-success rounded-pill px-3 py-1 text-uppercase fw-bold"><i class="bi bi-arrow-down-right me-1"></i>Improving Trajectory</span>`;
+      } else if (traj === "escalating") {
+        trajBadge.innerHTML = `<span class="badge bg-danger bg-opacity-25 text-danger rounded-pill px-3 py-1 text-uppercase fw-bold"><i class="bi bi-arrow-up-right me-1"></i>Escalating Trajectory</span>`;
+      } else {
+        trajBadge.innerHTML = `<span class="badge bg-secondary rounded-pill px-3 py-1 text-uppercase fw-bold"><i class="bi bi-arrow-right me-1"></i>Stable Baseline</span>`;
+      }
+    })
+    .catch(err => {
+      btn.disabled = false;
+      document.getElementById("narrativeLoading").classList.add("d-none");
+      alert("Error generating narrative: " + err);
+    });
+});
+
+// 2. Generate AI Case Summary
+document.getElementById("btnGenCaseSummary").addEventListener("click", function() {
+  const btn = this;
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Compiling Case...`;
+
+  fetch(`/api/counselor/case-summary/generate/${PATIENT_ID}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": getCsrfToken()
+    }
+  })
+  .then(r => r.json())
+  .then(data => {
+    btn.disabled = false;
+    btn.innerHTML = `<i class="bi bi-file-earmark-medical me-1"></i> Generate AI Case Summary`;
+
+    const card = document.getElementById("caseSummaryCard");
+    card.classList.remove("d-none");
+
+    document.getElementById("sumOverview").value = data.overview || "";
+    document.getElementById("sumConcerns").value = data.reported_concerns || "";
+    document.getElementById("sumPatterns").value = data.recurring_patterns || "";
+    document.getElementById("sumChanges").value = data.changes_over_time || "";
+    document.getElementById("sumHistory").value = data.historical_events || "";
+    document.getElementById("sumRisks").value = data.risk_indicators || "";
+    document.getElementById("sumRecs").value = data.recommended_review || "";
+
+    card.scrollIntoView({ behavior: "smooth" });
+  })
+  .catch(err => {
+    btn.disabled = false;
+    btn.innerHTML = `<i class="bi bi-file-earmark-medical me-1"></i> Generate AI Case Summary`;
+    alert("Error compiling case summary: " + err);
+  });
+});
+
+// 3. Save Case Summary
+document.getElementById("btnSaveSummary").addEventListener("click", function() {
+  const btn = this;
+  btn.disabled = true;
+
+  const payload = {
+    user_id: PATIENT_ID,
+    overview: document.getElementById("sumOverview").value,
+    reported_concerns: document.getElementById("sumConcerns").value,
+    recurring_patterns: document.getElementById("sumPatterns").value,
+    changes_over_time: document.getElementById("sumChanges").value,
+    historical_events: document.getElementById("sumHistory").value,
+    risk_indicators: document.getElementById("sumRisks").value,
+    recommended_review: document.getElementById("sumRecs").value,
+    counselor_edits: document.getElementById("sumCounselorEdits").value,
+    status: "approved"
+  };
+
+  fetch("/api/counselor/case-summary/save", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": getCsrfToken()
+    },
+    body: JSON.stringify(payload)
+  })
+  .then(r => r.json())
+  .then(data => {
+    btn.disabled = false;
+    if (data.success) {
+      alert("Clinical case summary saved and approved successfully!");
+      window.location.reload();
+    } else {
+      alert("Error saving: " + (data.error || "Failed."));
+    }
+  })
+  .catch(err => {
+    btn.disabled = false;
+    alert("Network error: " + err);
+  });
+});
+
+function escapeHtml(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+</script>
+{% endblock %}

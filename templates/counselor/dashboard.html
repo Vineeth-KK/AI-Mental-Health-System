@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+{% block title %}Counselor Portal & Crisis Triage – CareAI{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-12">
+    <!-- Hero Banner Card (Mira Life Style) -->
+    <div class="hero-mira p-4 mb-4">
+      <div style="position: absolute; right: 0; top: 0; bottom: 0; width: 50%; background-image: url('{{ url_for('static', filename='img/calm-nature-lake.jpg') }}'); background-size: cover; background-position: center; opacity: 0.15; pointer-events: none; mask-image: linear-gradient(to right, transparent, black 65%); -webkit-mask-image: linear-gradient(to right, transparent, black 65%);"></div>
+
+      <div class="row g-0 align-items-center position-relative" style="z-index: 1;">
+        <div class="col-md-9 pe-md-4">
+          <div class="pill-badge pill-badge-warm mb-2">
+            <i class="bi bi-shield-check text-success"></i> Authorized Clinical Portal &bull; Role: {{ current_user.role|capitalize }}
+          </div>
+          <h2 class="hero-title text-white mb-2">Human Counselor Triage & Caseload Monitoring</h2>
+          <p class="text-secondary small mb-0" style="line-height: 1.65; max-width: 650px;">
+            Confidential multi-agent triage terminal for reviewing urgent safety indicators, exploring longitudinal crisis narratives, and generating AI-assisted trauma case notes.
+          </p>
+        </div>
+        <div class="col-md-3 d-none d-md-block text-center p-2">
+          <img src="{{ url_for('static', filename='img/support-icon.svg') }}" alt="Clinical Portal" width="100" height="100" style="filter: drop-shadow(0 8px 16px rgba(0,0,0,0.5));">
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Metrics Row -->
+    <div class="row g-3 mb-4">
+      <div class="col-sm-6 col-lg-3">
+        <div class="card p-3 card-hover" style="border-left: 3px solid #f43f5e;">
+          <span class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.5px; font-size: 0.75rem;">Unresolved Alerts</span>
+          <div class="d-flex align-items-center justify-content-between mt-2">
+            <h3 class="fw-bold mb-0 text-white">{{ unresolved_count }}</h3>
+            <span class="badge rounded-pill bg-danger bg-opacity-25 text-danger px-3 py-1">Immediate Review</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card p-3 card-hover" style="border-left: 3px solid #f59e0b;">
+          <span class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.5px; font-size: 0.75rem;">Under Clinical Review</span>
+          <div class="d-flex align-items-center justify-content-between mt-2">
+            <h3 class="fw-bold mb-0 text-white">{{ in_review_count }}</h3>
+            <span class="badge rounded-pill bg-warning bg-opacity-25 text-warning px-3 py-1">In Progress</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card p-3 card-hover" style="border-left: 3px solid #10b981;">
+          <span class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.5px; font-size: 0.75rem;">Resolved Alerts</span>
+          <div class="d-flex align-items-center justify-content-between mt-2">
+            <h3 class="fw-bold mb-0 text-white">{{ resolved_count }}</h3>
+            <span class="badge rounded-pill bg-success bg-opacity-25 text-success px-3 py-1">Closed</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card p-3 card-hover" style="border-left: 3px solid #06b6d4;">
+          <span class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.5px; font-size: 0.75rem;">Active Caseload</span>
+          <div class="d-flex align-items-center justify-content-between mt-2">
+            <h3 class="fw-bold mb-0 text-white">{{ patient_summaries|length }}</h3>
+            <span class="badge rounded-pill bg-info bg-opacity-25 text-info px-3 py-1">Monitored</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Safety Alerts Section -->
+    <div class="card p-4 mb-4">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+          <h5 class="fw-bold text-white mb-1"><i class="bi bi-bell-fill text-danger me-2"></i>Safety Risk Indicators & Crisis Alerts</h5>
+          <span class="text-muted small">Real-time alerts flagged by Agent 5 (Safety Agent)</span>
+        </div>
+      </div>
+
+      {% if alerts and alerts|length > 0 %}
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle mb-0" style="background: transparent;">
+          <thead>
+            <tr class="text-muted small text-uppercase border-secondary border-opacity-25">
+              <th>ID</th>
+              <th>Patient</th>
+              <th>Risk Severity</th>
+              <th>Trigger Reason</th>
+              <th>Timestamp</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in alerts %}
+            <tr class="border-secondary border-opacity-10">
+              <td class="text-muted small">#{{ a.id }}</td>
+              <td>
+                <a href="{{ url_for('counselor.patient_detail', user_id=a.user_id) }}" class="text-decoration-none text-light fw-semibold">
+                  <i class="bi bi-person me-1 text-info"></i> {{ a.user.username if a.user else 'Patient #' ~ a.user_id }}
+                </a>
+              </td>
+              <td>
+                {% if a.risk_level == 'critical' %}
+                  <span class="badge bg-danger rounded-pill px-3 py-1 text-uppercase fw-bold">Critical</span>
+                {% elif a.risk_level == 'high' %}
+                  <span class="badge bg-warning bg-opacity-75 text-dark rounded-pill px-3 py-1 text-uppercase fw-bold">High</span>
+                {% else %}
+                  <span class="badge bg-secondary rounded-pill px-3 py-1 text-uppercase">Moderate</span>
+                {% endif %}
+              </td>
+              <td class="small text-light" style="max-width: 300px;">{{ a.message }}</td>
+              <td class="small text-muted">{{ a.created_at.strftime('%Y-%m-%d %H:%M') if a.created_at else '' }}</td>
+              <td>
+                {% set cur_status = a.status if a.status else ('resolved' if a.resolved else 'unresolved') %}
+                {% if cur_status == 'resolved' %}
+                  <span class="badge bg-success bg-opacity-25 text-success rounded-pill px-2 py-1">Resolved</span>
+                {% elif cur_status == 'in_review' %}
+                  <span class="badge bg-warning bg-opacity-25 text-warning rounded-pill px-2 py-1">In Review</span>
+                {% else %}
+                  <span class="badge bg-danger bg-opacity-25 text-danger rounded-pill px-2 py-1">Unresolved</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3 py-1 btn-triage"
+                          data-id="{{ a.id }}"
+                          data-status="{{ cur_status }}"
+                          data-notes="{{ a.counselor_notes|default('', true)|e }}">
+                    Triage
+                  </button>
+                  <a href="{{ url_for('counselor.patient_detail', user_id=a.user_id) }}" class="btn btn-sm btn-mira-primary rounded-pill px-3 py-1">
+                    Review Case
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-4 text-muted">
+        <i class="bi bi-check-circle fs-2 text-success d-block mb-2"></i>
+        <span>No active safety alerts. All patient safety evaluations are currently clear.</span>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Patient Caseload Overview -->
+    <div class="card p-4">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+          <h5 class="fw-bold text-white mb-1"><i class="bi bi-people-fill text-info me-2"></i>Patient Caseload & Longitudinal Trajectories</h5>
+          <span class="text-muted small">Live distress scores and regression slopes computed by Agent 4</span>
+        </div>
+      </div>
+
+      {% if patient_summaries and patient_summaries|length > 0 %}
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle mb-0" style="background: transparent;">
+          <thead>
+            <tr class="text-muted small text-uppercase border-secondary border-opacity-25">
+              <th>ID</th>
+              <th>Username</th>
+              <th>Current Distress</th>
+              <th>Regression Slope</th>
+              <th>Trajectory</th>
+              <th>Alert History</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ps in patient_summaries %}
+            <tr class="border-secondary border-opacity-10">
+              <td class="text-muted small">#{{ ps.patient.id }}</td>
+              <td>
+                <span class="fw-semibold text-white">{{ ps.patient.username }}</span>
+                <span class="d-block text-muted small" style="font-size: 0.75rem;">Registered: {{ ps.patient.registered_on.strftime('%Y-%m-%d') if ps.patient.registered_on else '' }}</span>
+              </td>
+              <td>
+                {% if ps.distress_score != 'N/A' %}
+                  <span class="fw-bold text-light">{{ ps.distress_score }}</span> / 1.00
+                {% else %}
+                  <span class="text-muted small">No check-in</span>
+                {% endif %}
+              </td>
+              <td class="small">
+                {% if ps.slope > 0.015 %}
+                  <span class="text-danger fw-semibold"><i class="bi bi-arrow-up-right"></i> +{{ ps.slope }}</span>
+                {% elif ps.slope < -0.015 %}
+                  <span class="text-success fw-semibold"><i class="bi bi-arrow-down-right"></i> {{ ps.slope }}</span>
+                {% else %}
+                  <span class="text-muted"><i class="bi bi-arrow-right"></i> {{ ps.slope }}</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if ps.trend == 'improving' %}
+                  <span class="badge bg-success bg-opacity-25 text-success rounded-pill px-3 py-1">Improving</span>
+                {% elif ps.trend == 'worsening' %}
+                  <span class="badge bg-danger bg-opacity-25 text-danger rounded-pill px-3 py-1">Worsening</span>
+                {% else %}
+                  <span class="badge bg-secondary rounded-pill px-3 py-1">Stable</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if ps.unresolved_alerts > 0 %}
+                  <span class="badge bg-danger rounded-pill px-2 py-1"><i class="bi bi-exclamation-triangle-fill me-1"></i>{{ ps.unresolved_alerts }} Unresolved</span>
+                {% else %}
+                  <span class="text-muted small">{{ ps.alerts_count }} alert(s)</span>
+                {% endif %}
+              </td>
+              <td>
+                <a href="{{ url_for('counselor.patient_detail', user_id=ps.patient.id) }}" class="btn btn-sm btn-outline-info rounded-pill px-3">
+                  <i class="bi bi-folder2-open me-1"></i> Patient File
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-muted small mb-0">No active patients registered yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Triage Status Modal -->
+<div class="modal fade" id="alertModal" tabindex="-1" aria-labelledby="alertModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background: var(--card-bg, #1a1b23); border: 1px solid var(--card-border); border-radius: var(--radius-lg, 16px);">
+      <div class="modal-header border-secondary border-opacity-25">
+        <h6 class="modal-title text-white fw-bold" id="alertModalLabel"><i class="bi bi-pencil-square text-warning me-2"></i>Update Alert Triage Status</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="modalAlertId">
+        <div class="mb-3">
+          <label class="form-label text-light small fw-semibold">Review Status</label>
+          <select id="modalAlertStatus" class="form-select bg-dark text-light border-secondary border-opacity-25">
+            <option value="unresolved">Unresolved (Immediate attention)</option>
+            <option value="in_review">In Review (Counselor engaged)</option>
+            <option value="resolved">Resolved (Triage complete / safety verified)</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-light small fw-semibold">Counselor Case Notes</label>
+          <textarea id="modalAlertNotes" class="form-control bg-dark text-light border-secondary border-opacity-25" rows="4" placeholder="Document clinical review steps taken, safety plan verification, or outreach notes..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer border-secondary border-opacity-25">
+        <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn-mira-primary px-4" id="saveAlertStatusBtn">Save Review</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let modalInstance = null;
+function openAlertModal(alertId, currentStatus, notes) {
+  document.getElementById("modalAlertId").value = alertId;
+  document.getElementById("modalAlertStatus").value = currentStatus || "unresolved";
+  document.getElementById("modalAlertNotes").value = notes || "";
+  if (!modalInstance) {
+    modalInstance = new bootstrap.Modal(document.getElementById("alertModal"));
+  }
+  modalInstance.show();
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  document.querySelectorAll(".btn-triage").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      openAlertModal(this.dataset.id, this.dataset.status, this.dataset.notes);
+    });
+  });
+});
+
+document.getElementById("saveAlertStatusBtn").addEventListener("click", function() {
+  const alertId = document.getElementById("modalAlertId").value;
+  const status = document.getElementById("modalAlertStatus").value;
+  const notes = document.getElementById("modalAlertNotes").value;
+  const btn = this;
+  btn.disabled = true;
+
+  fetch(`/api/counselor/alert/${alertId}/status`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": getCsrfToken()
+    },
+    body: JSON.stringify({ status: status, counselor_notes: notes })
+  })
+  .then(r => r.json())
+  .then(data => {
+    btn.disabled = false;
+    if (data.success) {
+      if (modalInstance) modalInstance.hide();
+      window.location.reload();
+    } else {
+      alert("Error: " + (data.error || "Failed to update alert."));
+    }
+  })
+  .catch(err => {
+    btn.disabled = false;
+    alert("Network error: " + err);
+  });
+});
+</script>
+{% endblock %}

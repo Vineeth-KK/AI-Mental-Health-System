@@ -11,19 +11,34 @@ import numpy as np
 from datetime import datetime, timezone, timedelta
 from agents.state import AgentState
 from models.checkin import CheckIn
+from models.chat import ChatMessage
 from agents.distress import calculate_distress_score
 
-def analyze_trends(checkins: List[Dict[str, Any]]) -> Dict[str, Any]:
+def analyze_trends(
+    checkins: List[Dict[str, Any]],
+    conversational_signals: Optional[List[Dict[str, Any]]] = None
+) -> Dict[str, Any]:
     """Analyzes a chronological list of check-in dictionaries to compute
     rolling metrics, slopes, and overall mental health trajectory.
+    Optionally incorporates longitudinal conversational distress signals.
     """
     if not checkins:
+        conv_summary = None
+        if conversational_signals:
+            c_scores = [c["distress_score"] for c in conversational_signals if c.get("distress_score") is not None]
+            if c_scores:
+                conv_summary = {
+                    "count": len(c_scores),
+                    "avg_distress": round(float(np.mean(c_scores)), 3),
+                    "latest_distress": round(float(c_scores[-1]), 3)
+                }
         return {
             "status": "insufficient_data",
             "trend": "stable",
             "summary": "No historical check-in data recorded yet.",
             "rolling_averages": {},
-            "data_points_count": 0
+            "data_points_count": 0,
+            "conversational_distress": conv_summary
         }
 
     # Ensure checkins have calculated distress scores
@@ -94,6 +109,22 @@ def analyze_trends(checkins: List[Dict[str, Any]]) -> Dict[str, Any]:
         trend = "stable"
         insight = "Initial check-in logged. Regular daily check-ins will help identify meaningful personal patterns."
 
+    # Conversational distress synthesis if signals present
+    conv_distress = None
+    if conversational_signals:
+        c_scores = [c["distress_score"] for c in conversational_signals if c.get("distress_score") is not None]
+        if c_scores:
+            emotions = []
+            for c in conversational_signals:
+                if c.get("detected_emotions"):
+                    emotions.extend([e.strip() for e in str(c["detected_emotions"]).split(",") if e.strip()])
+            conv_distress = {
+                "count": len(c_scores),
+                "avg_distress": round(float(np.mean(c_scores)), 3),
+                "recent_distress": round(float(c_scores[-1]), 3),
+                "recurring_emotions": list(dict.fromkeys(emotions))[:4]
+            }
+
     return {
         "status": "success",
         "trend": trend,
@@ -101,7 +132,8 @@ def analyze_trends(checkins: List[Dict[str, Any]]) -> Dict[str, Any]:
         "current_score": round(current_score, 3),
         "rolling_averages": metric_averages,
         "summary": insight,
-        "data_points_count": count
+        "data_points_count": count,
+        "conversational_distress": conv_distress
     }
 
 def fetch_user_checkin_history(user_id: int, limit: int = 30) -> List[Dict[str, Any]]:
@@ -129,6 +161,35 @@ def fetch_user_checkin_history(user_id: int, limit: int = 30) -> List[Dict[str, 
         })
     return history
 
+def fetch_user_conversational_history(user_id: int, limit: int = 30) -> List[Dict[str, Any]]:
+    """Fetches user's conversational distress signals from chat_messages table."""
+    if not has_app_context() or not user_id:
+        return []
+    try:
+        records = (
+            ChatMessage.query.filter(
+                ChatMessage.user_id == user_id,
+                ChatMessage.role == "user",
+                ChatMessage.distress_score.isnot(None)
+            )
+            .order_by(ChatMessage.timestamp.asc())
+            .limit(limit)
+            .all()
+        )
+        return [
+            {
+                "id": r.id,
+                "content": r.content,
+                "distress_score": r.distress_score,
+                "sentiment": r.sentiment,
+                "detected_emotions": r.detected_emotions,
+                "timestamp": r.timestamp.isoformat() if r.timestamp else datetime.now(timezone.utc).isoformat()
+            }
+            for r in records
+        ]
+    except Exception:
+        return []
+
 def monitoring_agent_node(state: AgentState) -> Dict[str, Any]:
     """LangGraph node function for Agent 4: Monitoring Agent."""
     user_id = state.get("user_id")
@@ -141,6 +202,13 @@ def monitoring_agent_node(state: AgentState) -> Dict[str, Any]:
         except Exception:
             historical = []
 
+    conversational_signals = []
+    if user_id:
+        try:
+            conversational_signals = fetch_user_conversational_history(user_id)
+        except Exception:
+            conversational_signals = []
+
     # If current checkin was just submitted, append to historical for live trend update
     current = state.get("current_checkin")
     if current:
@@ -151,8 +219,8 @@ def monitoring_agent_node(state: AgentState) -> Dict[str, Any]:
         if "timestamp" not in item:
             item["timestamp"] = datetime.now(timezone.utc).isoformat()
         historical_copy.append(item)
-        trends = analyze_trends(historical_copy)
+        trends = analyze_trends(historical_copy, conversational_signals)
     else:
-        trends = analyze_trends(historical)
+        trends = analyze_trends(historical, conversational_signals)
 
     return {"trend_analysis": trends}

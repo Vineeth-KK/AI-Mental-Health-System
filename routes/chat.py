@@ -7,6 +7,7 @@ from extensions import db
 from models.chat import ChatMessage
 from models.checkin import CheckIn
 from agents.orchestrator import orchestrator
+from agents.distress import analyze_conversational_distress
 
 chat_bp = Blueprint("chat", __name__)
 
@@ -71,11 +72,15 @@ def chat():
     # Add the new user message to the workflow input
     formatted_messages.append({"role": "user", "content": user_msg})
 
-    # 2. Persist user message to DB
+    # 2. Persist user message to DB with calibrated distress analysis
+    distress_signal = analyze_conversational_distress(user_msg)
     user_chat_record = ChatMessage(
         user_id=current_user.id,
         role="user",
-        content=user_msg
+        content=user_msg,
+        distress_score=distress_signal.get("distress_score") if distress_signal else None,
+        sentiment=distress_signal.get("sentiment") if distress_signal else None,
+        detected_emotions=distress_signal.get("detected_emotions") if distress_signal else None
     )
     db.session.add(user_chat_record)
     db.session.commit()

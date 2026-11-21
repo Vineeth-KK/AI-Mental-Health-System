@@ -39,15 +39,17 @@ def create_app(config_class=Config):
     from routes.journal import journal_bp
     from routes.dashboard import dashboard_bp
     from routes.chat import chat_bp
+    from routes.counselor import counselor_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(checkin_bp)
     app.register_blueprint(journal_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(chat_bp)
+    app.register_blueprint(counselor_bp)
 
-    # Create database tables if they don't exist
-    with app.app_context():
-        db.create_all()
+    # Create database tables and run safe additive schema migrations
+    from services.db_migration import run_additive_migrations
+    run_additive_migrations(app)
 
     return app

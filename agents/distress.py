@@ -128,6 +128,125 @@ def _get_ml_classification(text: Optional[str]) -> Optional[Dict[str, Any]]:
     return None
 
 
+def analyze_conversational_distress(message: str) -> Optional[Dict[str, Any]]:
+    """Analyzes user conversational chat messages for calibrated distress and emotional indicators.
+    
+    Strict Design:
+    - Does NOT treat every chat message as a mental health assessment.
+    - Returns None for short greetings, casual remarks, or purely factual inquiries.
+    - Calibrates numeric distress indicator (0.0 to 1.0) strictly when emotional signals are present.
+    - Explicitly non-diagnostic.
+    """
+    if not message or not isinstance(message, str):
+        return None
+
+    cleaned = message.strip()
+    if len(cleaned) < 7:
+        return None
+
+    lowered = cleaned.lower()
+
+    # Skip conversational greetings, social pleasantries, and closures
+    casual_greetings = [
+        "hello", "hi", "hey", "good morning", "good evening", "how are you",
+        "thanks", "thank you", "ok", "okay", "bye", "goodbye", "see you", "cool",
+        "sounds good", "got it", "nice", "alright"
+    ]
+    if lowered in casual_greetings:
+        return None
+
+    # Skip purely factual / educational questions lacking personal emotional disclosure
+    has_personal_anchor = any(p in lowered for p in ["i ", "i'm", "im ", "i've", "my ", "me ", "myself", "feel", "feeling"])
+    is_factual_query = any(lowered.startswith(q) for q in ["what is", "what are", "define", "explain", "how does", "tell me about", "who is"])
+    if is_factual_query and not has_personal_anchor:
+        return None
+
+    # Critical crisis indicators (highest severity)
+    critical_cues = ["suicid", "kill myself", "end my life", "want to die", "better off dead", "cutting myself", "overdose", "hurt myself"]
+    for cue in critical_cues:
+        if cue in lowered:
+            return {
+                "distress_score": 0.95,
+                "distress_level": "critical",
+                "sentiment": "distressed",
+                "detected_emotions": "Crisis Distress, Acute Self-Harm Risk",
+                "is_critical": True
+            }
+
+    # High distress cues
+    high_cues = ["panic attack", "terrified", "hopeless", "unbearable", "drowning", "can't take this", "falling apart", "severe anxiety", "hyperventilating"]
+    for cue in high_cues:
+        if cue in lowered:
+            return {
+                "distress_score": 0.78,
+                "distress_level": "high",
+                "sentiment": "distressed",
+                "detected_emotions": "Severe Anxiety, Panic, Overwhelm",
+                "is_critical": False
+            }
+
+    # Moderate distress cues
+    mod_distress_words = [
+        ("anxious", "Anxiety"), ("anxiety", "Anxiety"),
+        ("stressed", "Stress"), ("stress", "Stress"),
+        ("depressed", "Depression"), ("depression", "Low Mood"),
+        ("lonely", "Loneliness"), ("isolated", "Isolation"),
+        ("insomnia", "Sleep Disruption"), ("can't sleep", "Sleep Disruption"),
+        ("exhausted", "Fatigue"), ("drained", "Cognitive Fatigue"),
+        ("crying", "Emotional Distress"), ("overwhelmed", "Overwhelm"),
+        ("hopeless", "Despair"), ("scared", "Fear"),
+        ("frustrated", "Frustration"), ("miserable", "Distress")
+    ]
+    matched_emotions = []
+    distress_hits = 0
+    for word, emotion in mod_distress_words:
+        if word in lowered:
+            distress_hits += 1
+            if emotion not in matched_emotions:
+                matched_emotions.append(emotion)
+
+    # Positive / recovery cues
+    positive_words = [
+        ("better", "Relief"), ("relieved", "Relief"),
+        ("calm", "Calm"), ("relaxed", "Relaxation"),
+        ("peaceful", "Peace"), ("grateful", "Gratitude"),
+        ("happy", "Joy"), ("hopeful", "Hope"),
+        ("smiling", "Positive Affect"), ("good day", "Contentment")
+    ]
+    positive_hits = 0
+    for word, emotion in positive_words:
+        if word in lowered:
+            positive_hits += 1
+            if emotion not in matched_emotions:
+                matched_emotions.append(emotion)
+
+    if distress_hits == 0 and positive_hits == 0:
+        # Informative or neutral statement without explicit distress or positive markers
+        return None
+
+    if distress_hits > positive_hits:
+        # Scale distress score: base 0.45 + up to 0.25 based on density of distress terms
+        score = round(min(0.75, 0.45 + (distress_hits - 1) * 0.08), 2)
+        level = "high" if score >= 0.65 else "moderate"
+        sentiment = "distressed"
+    elif positive_hits > distress_hits:
+        score = round(max(0.08, 0.22 - (positive_hits - 1) * 0.05), 2)
+        level = "low"
+        sentiment = "positive"
+    else:
+        score = 0.35
+        level = "moderate"
+        sentiment = "neutral"
+
+    return {
+        "distress_score": score,
+        "distress_level": level,
+        "sentiment": sentiment,
+        "detected_emotions": ", ".join(matched_emotions[:3]),
+        "is_critical": False
+    }
+
+
 def distress_agent_node(state: AgentState) -> Dict[str, Any]:
     """LangGraph node function for Agent 3: Distress Analysis Agent."""
     checkin = state.get("current_checkin")

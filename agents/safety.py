@@ -104,6 +104,19 @@ def record_safety_alert_if_urgent(user_id: Optional[int], alert_data: Dict[str, 
         )
         db.session.add(alert)
         db.session.commit()
+
+        # Trigger counselor alert dispatch
+        try:
+            from services.notifier import dispatch_counselor_alert
+            dispatch_counselor_alert(
+                alert_id=alert.id,
+                user_id=user_id,
+                risk_level=alert_data.get("risk_level", "critical"),
+                reason=alert_data.get("flag_reason", "Urgent safety risk detected")
+            )
+        except Exception:
+            pass
+
         return alert.id
     except Exception:
         db.session.rollback()
