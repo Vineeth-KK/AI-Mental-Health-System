@@ -1,7 +1,9 @@
+import os
 from app import create_app
 
 app = create_app()
 
 if __name__ == "__main__":
-    # Run the Flask dev server on all interfaces (so it can be accessed from a browser)
-    app.run(host="0.0.0.0", port=5000, threaded=True)
+    # Support dynamic PORT assignment for cloud platforms like Render, Railway, Heroku
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, threaded=True)
