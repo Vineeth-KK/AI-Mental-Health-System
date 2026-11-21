@@ -5,63 +5,64 @@
 <div class="row g-4">
   <!-- Main Chat Window (col-lg-8) -->
   <div class="col-lg-8">
-    <div class="card glass shadow-lg border-0 overflow-hidden" style="border-radius: 18px;">
+    <div class="card shadow-lg border-0 overflow-hidden" style="border-radius: var(--radius-xl);">
       <!-- Chat Header -->
-      <div class="p-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center bg-dark bg-opacity-40">
+      <div class="p-4 border-bottom border-secondary border-opacity-10 d-flex justify-content-between align-items-center" style="background: rgba(255, 255, 255, 0.02);">
         <div class="d-flex align-items-center gap-3">
           <div class="position-relative">
-            <img src="{{ url_for('static', filename='img/bot-avatar.svg') }}" alt="CareAI Avatar" width="44" height="44" class="rounded-circle brand-glow">
-            <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-dark rounded-circle" style="width: 10px; height: 10px;"></span>
+            <img src="{{ url_for('static', filename='img/bot-avatar.svg') }}" alt="CareAI Avatar" width="46" height="46" class="rounded-circle brand-glow">
+            <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-dark rounded-circle" style="width: 11px; height: 11px;"></span>
           </div>
           <div>
-            <h5 class="fw-bold mb-0 text-white">CareAI Wellbeing Companion</h5>
-            <span class="text-secondary small d-flex align-items-center gap-1">
-              <span class="text-success">&bull;</span> Six-Agent Coordinated &bull; Local Quantized LLM &bull; Non-diagnostic
+            <h5 class="fw-bold mb-0 text-white">CareAI Companion</h5>
+            <span class="text-muted small d-flex align-items-center gap-2 mt-1">
+              <span class="badge bg-success bg-opacity-25 text-success rounded-pill px-2 py-0">Online</span>
+              <span>&bull; Six-Agent LangGraph System &bull; Non-diagnostic</span>
             </span>
           </div>
         </div>
-        <button id="clearChatBtn" class="btn btn-outline-secondary btn-sm" title="Clear conversation view">
-          <i class="bi bi-trash3"></i>
+        <button id="clearChatBtn" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1" title="Clear conversation view">
+          <i class="bi bi-trash3 me-1"></i> Clear
         </button>
       </div>
 
-      <!-- Quick prompts bar -->
-      <div class="p-2 px-3 border-bottom border-secondary border-opacity-25 bg-dark bg-opacity-25 d-flex gap-2 overflow-x-auto">
-        <button class="btn btn-sm btn-outline-secondary text-nowrap quick-prompt rounded-pill px-3">🌿 4-7-8 Breathing Technique</button>
-        <button class="btn btn-sm btn-outline-secondary text-nowrap quick-prompt rounded-pill px-3">💼 Feeling overwhelmed with work</button>
-        <button class="btn btn-sm btn-outline-secondary text-nowrap quick-prompt rounded-pill px-3">🌙 Trouble falling asleep tonight</button>
-        <button class="btn btn-sm btn-outline-secondary text-nowrap quick-prompt rounded-pill px-3">🧘 5-4-3-2-1 Sensory Grounding</button>
+      <!-- Quick Prompts Bar (Mira Pill Chips) -->
+      <div class="p-3 border-bottom border-secondary border-opacity-10 d-flex gap-2 overflow-x-auto" style="background: rgba(0, 0, 0, 0.2);">
+        <button class="pill-badge quick-prompt border-0 py-2 px-3 text-nowrap" style="cursor: pointer;">🌿 4-7-8 Breathing Technique</button>
+        <button class="pill-badge quick-prompt border-0 py-2 px-3 text-nowrap" style="cursor: pointer;">💼 Feeling overwhelmed with work</button>
+        <button class="pill-badge quick-prompt border-0 py-2 px-3 text-nowrap" style="cursor: pointer;">🌙 Trouble falling asleep tonight</button>
+        <button class="pill-badge quick-prompt border-0 py-2 px-3 text-nowrap" style="cursor: pointer;">🧘 5-4-3-2-1 Sensory Grounding</button>
       </div>
 
       <!-- Chat Messages Container -->
       <div id="chatMessages" class="chat-container">
         <!-- Welcome Message -->
-        <div class="chat-row chat-ai-row d-flex gap-2 align-items-start">
-          <img src="{{ url_for('static', filename='img/bot-avatar.svg') }}" alt="AI" width="32" height="32" class="rounded-circle mt-1 flex-shrink-0">
+        <div class="chat-row chat-ai-row d-flex gap-3 align-items-start">
+          <img src="{{ url_for('static', filename='img/bot-avatar.svg') }}" alt="AI" width="36" height="36" class="rounded-circle mt-1 flex-shrink-0">
           <div class="chat-bubble chat-ai">
-            <strong class="text-primary-emphasis d-block mb-1">CareAI Companion</strong>
-            Hello {{ current_user.username }}, I am here to support your mental wellbeing. Feel free to talk through any worries, stress, or thoughts on your mind, or ask for a calming grounding exercise. How are you feeling right now?
+            <div class="fw-bold mb-1" style="color: var(--accent-warm);">CareAI Companion</div>
+            Hello <strong class="text-white">{{ current_user.username }}</strong>. I am here to support your mental wellbeing. Feel free to talk through any worries, stress, or thoughts on your mind, or ask for a calming grounding exercise. How are you feeling right now?
           </div>
         </div>
       </div>
 
       <!-- Typing Indicator -->
       <div id="typingIndicator" class="px-4 py-2 text-muted small d-none d-flex align-items-center gap-2">
-        <span class="spinner-grow spinner-grow-sm text-primary" role="status" aria-hidden="true"></span>
-        <span class="text-secondary">CareAI is orchestrating multi-agent response...</span>
+        <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true" style="color: var(--accent-warm); width: 10px; height: 10px;"></span>
+        <span class="text-secondary small">CareAI is orchestrating multi-agent response...</span>
       </div>
 
       <!-- Input Bar -->
-      <div class="p-3 border-top border-secondary border-opacity-25 bg-dark bg-opacity-30">
+      <div class="p-3 border-top border-secondary border-opacity-10" style="background: rgba(0, 0, 0, 0.25);">
         <form id="chatForm" class="d-flex gap-2">
-          <input type="text" id="chatInput" class="form-control bg-dark text-light border-secondary p-2 px-3" placeholder="Type a message or question about how you are feeling..." autocomplete="off" required style="border-radius: 12px;">
-          <button type="submit" id="sendBtn" class="btn btn-primary px-4 fw-semibold" style="border-radius: 12px;">
-            <i class="bi bi-send-fill me-1"></i> Send
+          <input type="text" id="chatInput" class="form-control rounded-pill px-4 py-2" placeholder="Share what you are feeling or ask a question..." autocomplete="off" required>
+          <button type="submit" id="sendBtn" class="btn-mira-primary px-4 py-2 d-flex align-items-center gap-2">
+            <i class="bi bi-send-fill"></i> <span class="d-none d-sm-inline">Send</span>
           </button>
         </form>
-        <div class="d-flex justify-content-between align-items-center text-muted small mt-2">
+        <div class="d-flex justify-content-between align-items-center text-muted small mt-2 px-2">
           <span>CareAI offers empathetic support & relaxation practices. Not for medical diagnosis or clinical emergencies.</span>
-          <span class="badge bg-secondary bg-opacity-25 text-muted">Confidential</span>
+          <span class="pill-badge pill-badge-blue py-0 px-2 small">Confidential</span>
         </div>
       </div>
     </div>
@@ -71,32 +72,32 @@
   <div class="col-lg-4">
     <div class="d-flex flex-column gap-4">
       <!-- Card 1: Grounding & Relaxation Toolkit -->
-      <div class="card glass overflow-hidden card-hover">
+      <div class="card overflow-hidden card-hover">
         <div class="img-container-overflow">
           <img src="{{ url_for('static', filename='img/meditation-peace.jpg') }}" alt="Mindfulness Grounding" class="card-img-top-cover">
         </div>
         <div class="p-4">
           <h5 class="fw-bold text-white mb-2"><i class="bi bi-shield-heart text-success me-2"></i>5-4-3-2-1 Sensory Grounding</h5>
-          <p class="text-secondary small mb-3">If anxiety rises, try this quick mindfulness checklist in the room around you:</p>
+          <p class="text-muted small mb-3">If anxiety rises, try this quick mindfulness checklist in the room around you:</p>
           <ul class="list-unstyled text-secondary small d-flex flex-column gap-2 mb-0">
-            <li class="d-flex align-items-center gap-2">
-              <span class="badge bg-primary bg-opacity-20 text-primary fw-bold">5</span>
+            <li class="d-flex align-items-center gap-2 p-2 rounded-3" style="background: rgba(255, 255, 255, 0.025);">
+              <span class="pill-badge pill-badge-blue py-0 px-2 fw-bold">5</span>
               <span><strong>See:</strong> Notice 5 distinct colors or objects</span>
             </li>
-            <li class="d-flex align-items-center gap-2">
-              <span class="badge bg-success bg-opacity-20 text-success fw-bold">4</span>
+            <li class="d-flex align-items-center gap-2 p-2 rounded-3" style="background: rgba(255, 255, 255, 0.025);">
+              <span class="pill-badge pill-badge-emerald py-0 px-2 fw-bold">4</span>
               <span><strong>Touch:</strong> Feel 4 textures (desk, clothes, ring)</span>
             </li>
-            <li class="d-flex align-items-center gap-2">
-              <span class="badge bg-info bg-opacity-20 text-info fw-bold">3</span>
+            <li class="d-flex align-items-center gap-2 p-2 rounded-3" style="background: rgba(255, 255, 255, 0.025);">
+              <span class="pill-badge pill-badge-warm py-0 px-2 fw-bold">3</span>
               <span><strong>Hear:</strong> Listen for 3 subtle ambient sounds</span>
             </li>
-            <li class="d-flex align-items-center gap-2">
-              <span class="badge bg-warning bg-opacity-20 text-warning fw-bold">2</span>
+            <li class="d-flex align-items-center gap-2 p-2 rounded-3" style="background: rgba(255, 255, 255, 0.025);">
+              <span class="pill-badge py-0 px-2 fw-bold" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">2</span>
               <span><strong>Smell:</strong> Identify 2 scents in the air</span>
             </li>
-            <li class="d-flex align-items-center gap-2">
-              <span class="badge bg-danger bg-opacity-20 text-danger fw-bold">1</span>
+            <li class="d-flex align-items-center gap-2 p-2 rounded-3" style="background: rgba(255, 255, 255, 0.025);">
+              <span class="pill-badge py-0 px-2 fw-bold" style="background: rgba(244, 63, 94, 0.15); color: #f43f5e;">1</span>
               <span><strong>Taste:</strong> Notice 1 lingering taste or sip water</span>
             </li>
           </ul>
@@ -104,40 +105,40 @@
       </div>
 
       <!-- Card 2: Coordinated Multi-Agent Architecture -->
-      <div class="card glass p-4 card-hover">
+      <div class="card p-4 card-hover">
         <h6 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
           <i class="bi bi-diagram-3-fill text-primary"></i> Multi-Agent Orchestration
         </h6>
         <div class="d-flex flex-column gap-2 small">
-          <div class="d-flex justify-content-between align-items-center p-2 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+          <div class="d-flex justify-content-between align-items-center p-2 rounded-3" style="background: rgba(255, 255, 255, 0.025); border: 1px solid var(--card-border);">
             <span class="text-light">Agent 1: Orchestrator</span>
-            <span class="badge bg-success bg-opacity-25 text-success">Active</span>
+            <span class="pill-badge pill-badge-emerald py-0 px-2 small">Active</span>
           </div>
-          <div class="d-flex justify-content-between align-items-center p-2 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+          <div class="d-flex justify-content-between align-items-center p-2 rounded-3" style="background: rgba(255, 255, 255, 0.025); border: 1px solid var(--card-border);">
             <span class="text-light">Agent 2: Conversation</span>
-            <span class="badge bg-primary bg-opacity-25 text-primary">Empathetic</span>
+            <span class="pill-badge pill-badge-warm py-0 px-2 small">Empathetic</span>
           </div>
-          <div class="d-flex justify-content-between align-items-center p-2 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+          <div class="d-flex justify-content-between align-items-center p-2 rounded-3" style="background: rgba(255, 255, 255, 0.025); border: 1px solid var(--card-border);">
             <span class="text-light">Agent 3: Distress Analysis</span>
-            <span class="badge bg-info bg-opacity-25 text-info">Normalized</span>
+            <span class="pill-badge pill-badge-blue py-0 px-2 small">Normalized</span>
           </div>
-          <div class="d-flex justify-content-between align-items-center p-2 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+          <div class="d-flex justify-content-between align-items-center p-2 rounded-3" style="background: rgba(255, 255, 255, 0.025); border: 1px solid var(--card-border);">
             <span class="text-light">Agent 4: Monitoring Trends</span>
-            <span class="badge bg-warning bg-opacity-25 text-warning">Rolling 7D</span>
+            <span class="pill-badge py-0 px-2 small text-warning" style="background: rgba(245, 158, 11, 0.15);">Rolling 7D</span>
           </div>
-          <div class="d-flex justify-content-between align-items-center p-2 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+          <div class="d-flex justify-content-between align-items-center p-2 rounded-3" style="background: rgba(255, 255, 255, 0.025); border: 1px solid var(--card-border);">
             <span class="text-light">Agent 5: Safety Guardrail</span>
-            <span class="badge bg-danger bg-opacity-25 text-danger">Priority</span>
+            <span class="pill-badge py-0 px-2 small text-danger" style="background: rgba(244, 63, 94, 0.15);">Priority</span>
           </div>
-          <div class="d-flex justify-content-between align-items-center p-2 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+          <div class="d-flex justify-content-between align-items-center p-2 rounded-3" style="background: rgba(255, 255, 255, 0.025); border: 1px solid var(--card-border);">
             <span class="text-light">Agent 6: Recommendation</span>
-            <span class="badge bg-secondary bg-opacity-25 text-light">RAG Vector</span>
+            <span class="pill-badge py-0 px-2 small text-light" style="background: rgba(255, 255, 255, 0.1);">RAG Vector</span>
           </div>
         </div>
       </div>
 
       <!-- Card 3: 24/7 Crisis Helplines -->
-      <div class="card glass p-4 card-hover border-danger border-opacity-25">
+      <div class="card p-4 card-hover border-danger border-opacity-25">
         <div class="d-flex align-items-center gap-3 mb-2">
           <img src="{{ url_for('static', filename='img/support-icon.svg') }}" alt="Support" width="40" height="40">
           <div>
@@ -176,12 +177,12 @@ function appendMessage(role, text, isSafetyOverride = false) {
     bubble.innerHTML = text;
     row.appendChild(bubble);
   } else {
-    row.className = "chat-row chat-ai-row d-flex gap-2 align-items-start";
+    row.className = "chat-row chat-ai-row d-flex gap-3 align-items-start";
     
     const avatar = document.createElement("img");
     avatar.src = "{{ url_for('static', filename='img/bot-avatar.svg') }}";
-    avatar.width = 32;
-    avatar.height = 32;
+    avatar.width = 36;
+    avatar.height = 36;
     avatar.className = "rounded-circle mt-1 flex-shrink-0";
     avatar.alt = "AI";
     row.appendChild(avatar);
@@ -192,7 +193,7 @@ function appendMessage(role, text, isSafetyOverride = false) {
     if (isSafetyOverride) {
       bubble.innerHTML = `<div class="d-flex align-items-center gap-2 mb-1 text-danger fw-bold"><i class="bi bi-shield-exclamation"></i> Crisis Safety Support Notice</div>` + text.replace(/\n/g, "<br>");
     } else {
-      bubble.innerHTML = `<strong class="text-primary-emphasis d-block mb-1">CareAI Companion</strong>` + text.replace(/\n/g, "<br>");
+      bubble.innerHTML = `<div class="fw-bold mb-1" style="color: var(--accent-warm);">CareAI Companion</div>` + text.replace(/\n/g, "<br>");
     }
     row.appendChild(bubble);
   }
@@ -253,10 +254,10 @@ document.querySelectorAll(".quick-prompt").forEach(btn => {
 // Clear conversation view
 document.getElementById("clearChatBtn").addEventListener("click", function() {
   chatContainer.innerHTML = `
-    <div class="chat-row chat-ai-row d-flex gap-2 align-items-start">
-      <img src="{{ url_for('static', filename='img/bot-avatar.svg') }}" alt="AI" width="32" height="32" class="rounded-circle mt-1 flex-shrink-0">
+    <div class="chat-row chat-ai-row d-flex gap-3 align-items-start">
+      <img src="{{ url_for('static', filename='img/bot-avatar.svg') }}" alt="AI" width="36" height="36" class="rounded-circle mt-1 flex-shrink-0">
       <div class="chat-bubble chat-ai">
-        <strong class="text-primary-emphasis d-block mb-1">CareAI Companion</strong>
+        <div class="fw-bold mb-1" style="color: var(--accent-warm);">CareAI Companion</div>
         Conversation cleared. How can I assist your wellbeing today?
       </div>
     </div>

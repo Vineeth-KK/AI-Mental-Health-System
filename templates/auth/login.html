@@ -1,29 +1,29 @@
 {% extends "base.html" %}
-{% block title %}Sign In – CareAI Mental Health Monitor{% endblock %}
+{% block title %}Sign In – CareAI Capacity Monitor{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center align-items-center mt-2 mb-4">
+<div class="row justify-content-center align-items-center mt-3 mb-5">
   <div class="col-xl-9 col-lg-10 col-md-11">
-    <div class="card shadow-2-strong border-0 overflow-hidden glass p-0" style="border-radius: 20px;">
+    <div class="card shadow-2-strong border-0 overflow-hidden p-0" style="border-radius: var(--radius-xl);">
       <div class="row g-0">
         <!-- Left Side: Hero illustration & features -->
-        <div class="col-lg-6 d-none d-lg-flex flex-column justify-content-between p-5 position-relative border-end border-secondary border-opacity-25" style="background: linear-gradient(145deg, rgba(14, 21, 37, 0.94) 0%, rgba(9, 13, 24, 0.98) 100%);">
+        <div class="col-lg-6 d-none d-lg-flex flex-column justify-content-between p-5 position-relative border-end border-secondary border-opacity-10" style="background: linear-gradient(145deg, rgba(21, 22, 28, 0.96) 0%, rgba(14, 15, 20, 0.98) 100%);">
           <!-- Ambient nature backdrop photo overlay -->
-          <div style="position: absolute; inset: 0; background-image: url('{{ url_for('static', filename='img/calm-nature-lake.jpg') }}'); background-size: cover; background-position: center; opacity: 0.14; pointer-events: none; mask-image: linear-gradient(to bottom, black 40%, transparent); -webkit-mask-image: linear-gradient(to bottom, black 40%, transparent);"></div>
+          <div style="position: absolute; inset: 0; background-image: url('{{ url_for('static', filename='img/calm-nature-lake.jpg') }}'); background-size: cover; background-position: center; opacity: 0.16; pointer-events: none; mask-image: linear-gradient(to bottom, black 40%, transparent); -webkit-mask-image: linear-gradient(to bottom, black 40%, transparent);"></div>
 
           <div class="position-relative" style="z-index: 1;">
             <div class="d-flex align-items-center gap-2 mb-3">
               <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="CareAI" width="38" height="38" class="rounded-circle brand-glow">
-              <span class="fs-5 fw-bold text-light">Care<span class="text-primary">AI</span> Monitor</span>
+              <span class="fs-5 fw-bold text-white">Care<span style="color: var(--accent-warm);">AI</span></span>
             </div>
-            <h3 class="fw-bold text-white mb-2">Intelligent Mental Wellbeing Tracking</h3>
-            <p class="text-secondary small mb-4" style="line-height: 1.6;">
-              A supportive clinical monitoring system powered by a coordinated multi-agent AI architecture, personalized trend detection, and confidential data isolation.
+            <h2 class="hero-title text-white mb-2" style="font-size: 2.1rem;">Start from within.</h2>
+            <p class="text-secondary small mb-4" style="line-height: 1.65;">
+              A confidential mental wellbeing monitor designed to measure your emotional capacity, anticipate stress shifts, and nurture daily resilience.
             </p>
           </div>
 
           <div class="text-center my-3 position-relative" style="z-index: 1;">
-            <img src="{{ url_for('static', filename='img/auth-hero.svg') }}" alt="Mental Wellbeing AI Illustration" class="img-fluid hero-hover" style="max-height: 240px; filter: drop-shadow(0 14px 28px rgba(0,0,0,0.55));">
+            <img src="{{ url_for('static', filename='img/auth-hero.svg') }}" alt="Mental Wellbeing AI Illustration" class="img-fluid hero-hover" style="max-height: 240px; filter: drop-shadow(0 16px 32px rgba(0,0,0,0.6));">
           </div>
 
           <div class="d-flex flex-column gap-2 text-secondary small position-relative" style="z-index: 1;">
@@ -33,10 +33,10 @@
             </div>
             <div class="d-flex align-items-center gap-2">
               <i class="bi bi-cpu text-primary fs-6"></i>
-              <span>6-Agent LangGraph workflow (Orchestrator, Distress, Safety, etc.)</span>
+              <span>6-Agent LangGraph workflow (Orchestrator, Distress, Safety)</span>
             </div>
             <div class="d-flex align-items-center gap-2">
-              <i class="bi bi-graph-up-arrow text-info fs-6"></i>
+              <i class="bi bi-graph-up-arrow fs-6" style="color: var(--accent-warm);"></i>
               <span>Longitudinal 7-day rolling metrics and regression insights</span>
             </div>
           </div>
@@ -45,11 +45,11 @@
         <!-- Right Side: Login Form -->
         <div class="col-lg-6 p-4 p-md-5 d-flex flex-column justify-content-center">
           <div class="text-center mb-4">
-            <div class="d-inline-block p-2 rounded-circle bg-primary bg-opacity-10 mb-2 border border-primary border-opacity-25">
+            <div class="d-inline-block p-2 rounded-circle mb-2" style="background: rgba(255, 188, 125, 0.12); border: 1px solid rgba(255, 188, 125, 0.3);">
               <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="CareAI" width="48" height="48">
             </div>
-            <h4 class="fw-bold text-light mb-1">Welcome Back</h4>
-            <p class="text-muted small">Sign in to your private mental wellbeing portal</p>
+            <h4 class="fw-bold text-white mb-1">Welcome Back</h4>
+            <p class="text-muted small">Sign in to your confidential wellbeing portal</p>
           </div>
 
           <form method="POST" action="{{ url_for('auth.login') }}">
@@ -58,8 +58,8 @@
             <div class="mb-3">
               {{ form.email.label(class="form-label text-light small fw-semibold") }}
               <div class="input-group">
-                <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-envelope"></i></span>
-                {{ form.email(class="form-control bg-dark text-light border-secondary", placeholder="name@example.com", autofocus=true) }}
+                <span class="input-group-text bg-dark border-secondary border-opacity-25 text-secondary"><i class="bi bi-envelope"></i></span>
+                {{ form.email(class="form-control", placeholder="name@example.com", autofocus=true) }}
               </div>
               {% if form.email.errors %}
                 <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ form.email.errors[0] }}</div>
@@ -71,22 +71,22 @@
                 {{ form.password.label(class="form-label text-light small fw-semibold mb-0") }}
               </div>
               <div class="input-group">
-                <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-lock"></i></span>
-                {{ form.password(class="form-control bg-dark text-light border-secondary", placeholder="••••••••") }}
+                <span class="input-group-text bg-dark border-secondary border-opacity-25 text-secondary"><i class="bi bi-lock"></i></span>
+                {{ form.password(class="form-control", placeholder="••••••••") }}
               </div>
               {% if form.password.errors %}
                 <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ form.password.errors[0] }}</div>
               {% endif %}
             </div>
 
-            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold shadow-sm">
+            <button type="submit" class="btn-mira-primary w-100 py-3 fw-semibold">
               <i class="bi bi-box-arrow-in-right me-1"></i> Sign In to Portal
             </button>
           </form>
 
-          <div class="text-center mt-4 pt-3 border-top border-secondary border-opacity-25">
+          <div class="text-center mt-4 pt-3 border-top border-secondary border-opacity-10">
             <p class="text-muted small mb-0">Don't have an account yet? 
-              <a href="{{ url_for('auth.register') }}" class="text-primary text-decoration-none fw-semibold">Create account</a>
+              <a href="{{ url_for('auth.register') }}" class="text-decoration-none fw-semibold" style="color: var(--accent-warm);">Create account</a>
             </p>
           </div>
         </div>

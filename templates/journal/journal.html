@@ -1,58 +1,58 @@
 {% extends "base.html" %}
-{% block title %}Reflective Journal – CareAI Mental Health Monitor{% endblock %}
+{% block title %}Reflective Journal – CareAI Capacity Monitor{% endblock %}
 
 {% block content %}
 <div class="row g-4">
   <!-- Left Column: Journal Form & Past Reflections -->
   <div class="col-lg-7 col-xl-8">
-    <!-- Hero Banner Card -->
-    <div class="card border-0 overflow-hidden mb-4 p-0 position-relative" style="background: linear-gradient(135deg, rgba(14, 21, 37, 0.94) 0%, rgba(9, 13, 24, 0.98) 100%); border-radius: 18px;">
-      <div style="position: absolute; right: 0; top: 0; bottom: 0; width: 50%; background-image: url('{{ url_for('static', filename='img/journal-desk.jpg') }}'); background-size: cover; background-position: center; opacity: 0.12; pointer-events: none; mask-image: linear-gradient(to right, transparent, black 60%); -webkit-mask-image: linear-gradient(to right, transparent, black 60%);"></div>
+    <!-- Hero Banner Card (Mira Life Style) -->
+    <div class="hero-mira p-4 mb-4">
+      <div style="position: absolute; right: 0; top: 0; bottom: 0; width: 55%; background-image: url('{{ url_for('static', filename='img/journal-desk.jpg') }}'); background-size: cover; background-position: center; opacity: 0.16; pointer-events: none; mask-image: linear-gradient(to right, transparent, black 65%); -webkit-mask-image: linear-gradient(to right, transparent, black 65%);"></div>
 
       <div class="row g-0 align-items-center position-relative" style="z-index: 1;">
-        <div class="col-md-7 p-4">
-          <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-warning bg-opacity-20 border border-warning border-opacity-30 text-warning small fw-semibold mb-2">
+        <div class="col-md-8 pe-md-3">
+          <div class="pill-badge pill-badge-warm mb-2">
             <i class="bi bi-pencil-fill"></i> Agent 5: Safety & Sentiment Triage
           </div>
-          <h3 class="fw-bold text-white mb-2">Reflective Journal</h3>
-          <p class="text-secondary small mb-0" style="line-height: 1.6;">
-            Expressive writing provides emotional catharsis and declutters mental overload. Entries are analyzed privately by Agent 5 to detect emotional tone and crisis signals.
+          <h2 class="hero-title text-white mb-2">Reflective Journal</h2>
+          <p class="text-secondary small mb-0" style="line-height: 1.65; max-width: 520px;">
+            Externalize inner thoughts, clarify complex emotions, and relieve mental overload. Agent 5 reads each entry privately to monitor emotional trajectory and ensure crisis safety.
           </p>
         </div>
-        <div class="col-md-5 d-none d-md-block text-center p-3">
-          <img src="{{ url_for('static', filename='img/journal-hero.svg') }}" alt="Reflective Journal Illustration" class="img-fluid hero-hover" style="max-height: 160px; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.45));">
+        <div class="col-md-4 d-none d-md-block text-center p-2">
+          <img src="{{ url_for('static', filename='img/journal-hero.svg') }}" alt="Reflective Journal Illustration" class="img-fluid hero-hover" style="max-height: 160px; filter: drop-shadow(0 12px 24px rgba(0,0,0,0.5));">
         </div>
       </div>
     </div>
 
     <!-- Journal Form Card -->
-    <div class="card glass p-4 mb-4" style="border-radius: 18px;">
+    <div class="card p-4 mb-4">
       <form id="journalForm">
         <div class="mb-3">
-          <label for="journalContent" class="form-label text-light fw-semibold d-flex justify-content-between align-items-center mb-2">
-            <span>What's on your mind today?</span>
-            <span class="badge bg-secondary bg-opacity-40 text-muted small"><i class="bi bi-shield-lock"></i> Confidential & Encrypted</span>
-          </label>
-          <textarea id="journalContent" class="form-control bg-dark text-light border-secondary p-3" rows="6" placeholder="Write freely about your thoughts, emotions, challenges, or whatever you are currently experiencing..." style="border-radius: 12px; font-size: 0.95rem; line-height: 1.6;" required></textarea>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <label for="journalContent" class="form-label text-white fw-semibold mb-0">What is on your mind today?</label>
+            <span class="pill-badge small py-1 px-3"><i class="bi bi-shield-lock me-1"></i> Private & Encrypted</span>
+          </div>
+          <textarea id="journalContent" class="form-control p-3" rows="7" placeholder="Write freely about your thoughts, feelings, frustrations, or moments of clarity today..." style="font-size: 0.95rem; line-height: 1.65;" required></textarea>
           <div class="form-text text-muted small mt-2">
-            🔒 Private & Confidential: Personal reflections are kept strictly in your local database. Zero third-party API exposure.
+            🔒 Private & Confidential: Entries are evaluated locally by Agent 5. Never transmitted to third-party advertisers or external APIs.
           </div>
         </div>
 
-        <button type="submit" id="saveJournalBtn" class="btn btn-primary px-4 py-2 fw-semibold shadow-sm">
-          <i class="bi bi-save me-1"></i> Save Entry & Analyze
+        <button type="submit" id="saveJournalBtn" class="btn-mira-primary px-4 py-2">
+          <i class="bi bi-save me-1"></i> Save Entry & Analyze Tone
         </button>
       </form>
     </div>
 
     <!-- Agent Response Feedback -->
-    <div id="journalResultCard" class="card glass p-4 mb-4 d-none" style="border-radius: 18px;">
+    <div id="journalResultCard" class="card p-4 mb-4 d-none">
       <div class="d-flex align-items-center gap-2 mb-3">
         <img src="{{ url_for('static', filename='img/bot-avatar.svg') }}" alt="CareAI" width="36" height="36" class="rounded-circle">
         <h5 class="fw-bold mb-0 text-white">AI Analysis & Wellbeing Feedback</h5>
       </div>
 
-      <div id="journalSafetyBanner" class="alert alert-danger d-none mb-3 border-danger">
+      <div id="journalSafetyBanner" class="alert alert-danger d-none mb-3 border-danger rounded-4">
         <h6 class="alert-heading fw-bold d-flex align-items-center gap-2">
           <img src="{{ url_for('static', filename='img/support-icon.svg') }}" alt="Support" width="28" height="28">
           Crisis Safety Support Activated
@@ -60,94 +60,94 @@
         <div id="journalSafetyText" class="small"></div>
       </div>
 
-      <div class="p-3 rounded bg-dark bg-opacity-75 mb-3 border border-secondary border-opacity-25">
-        <span class="text-muted small d-block mb-1 text-uppercase fw-semibold">Agent Observation</span>
-        <p id="journalAgentResponse" class="mb-0 text-light" style="line-height: 1.6;"></p>
+      <div class="p-3 rounded-4 mb-3" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border);">
+        <span class="text-muted small d-block mb-1 text-uppercase fw-semibold tracking-wider">Agent Observation</span>
+        <p id="journalAgentResponse" class="mb-0 text-light" style="line-height: 1.65;"></p>
       </div>
 
       <div id="sentimentBadgeContainer" class="d-flex align-items-center gap-2">
         <span class="text-muted small">Identified Sentiment:</span>
-        <span id="sentimentBadge" class="badge bg-secondary text-uppercase px-2 py-1">Neutral</span>
+        <span id="sentimentBadge" class="badge bg-secondary text-uppercase px-3 py-1 rounded-pill">Neutral</span>
       </div>
     </div>
 
     <!-- Past Journal Entries -->
-    <div class="card glass p-4" style="border-radius: 18px;">
-      <h5 class="fw-bold mb-3 text-white"><i class="bi bi-journal-bookmark me-1 text-primary"></i> Previous Reflections</h5>
+    <div class="card p-4">
+      <h5 class="fw-bold mb-3 text-white"><i class="bi bi-journal-bookmark me-1" style="color: var(--accent-warm);"></i> Previous Reflections</h5>
       {% if entries %}
         <div class="d-flex flex-column gap-3">
           {% for e in entries %}
-          <div class="p-3 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-25 card-hover">
+          <div class="p-3 rounded-4 card-hover" style="background: rgba(255, 255, 255, 0.025); border: 1px solid var(--card-border);">
             <div class="d-flex justify-content-between text-muted small mb-2">
               <span><i class="bi bi-calendar3 me-1"></i> {{ e.created_at.strftime('%B %d, %Y at %H:%M') if e.created_at else '' }}</span>
               {% if e.sentiment_label %}
-                <span class="badge bg-secondary bg-opacity-40 text-light small">{{ e.sentiment_label }}</span>
+                <span class="pill-badge pill-badge-warm small py-1 px-2">{{ e.sentiment_label }}</span>
               {% endif %}
             </div>
-            <p class="text-light mb-0" style="white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6;">{{ e.content }}</p>
+            <p class="text-light mb-0" style="white-space: pre-wrap; font-size: 0.95rem; line-height: 1.65;">{{ e.content }}</p>
           </div>
           {% endfor %}
         </div>
       {% else %}
-        <p class="text-muted small mb-0">No journal entries saved yet. Writing down your experiences is a powerful first step.</p>
+        <p class="text-muted small mb-0">No reflections saved yet. Writing down what is inside you is the first step toward lightness.</p>
       {% endif %}
     </div>
   </div>
 
-  <!-- Right Sidebar: Journal Prompts & Guidance -->
+  <!-- Right Sidebar: Mira Prompts & Science -->
   <div class="col-lg-5 col-xl-4">
     <div class="d-flex flex-column gap-4">
       <!-- Card 1: Guided Writing Prompts -->
-      <div class="card glass overflow-hidden card-hover">
+      <div class="card overflow-hidden card-hover">
         <div class="img-container-overflow">
           <img src="{{ url_for('static', filename='img/journal-desk.jpg') }}" alt="Writing Prompts" class="card-img-top-cover">
         </div>
         <div class="p-4">
-          <h5 class="fw-bold text-white mb-2"><i class="bi bi-lightbulb text-warning me-2"></i>Daily Reflection Prompts</h5>
-          <p class="text-secondary small mb-3">Feeling stuck? Click any prompt below to populate your journal entry:</p>
+          <h5 class="fw-bold text-white mb-2"><i class="bi bi-lightbulb text-warning me-2"></i>Reflection Prompts</h5>
+          <p class="text-muted small mb-3">Click any reflection starter to populate your journal entry:</p>
 
           <div class="d-flex flex-column gap-2">
-            <button type="button" class="btn btn-sm btn-outline-secondary text-start prompt-click p-2 rounded" data-prompt="Today, one moment that brought me a sense of peace or gratitude was...">
-              🌿 <em>"One moment that brought me gratitude today..."</em>
+            <button type="button" class="btn text-start prompt-click p-3 rounded-4 w-100" data-prompt="Today, one moment that brought me a quiet sense of peace or gratitude was..." style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border); color: var(--text-secondary); transition: var(--transition-smooth);">
+              🌿 <em class="small">"One moment that brought me gratitude today was..."</em>
             </button>
-            <button type="button" class="btn btn-sm btn-outline-secondary text-start prompt-click p-2 rounded" data-prompt="What feels heavy on my mind right now is... and the best way I can care for myself is...">
-              💭 <em>"What feels heavy on my mind right now is..."</em>
+            <button type="button" class="btn text-start prompt-click p-3 rounded-4 w-100" data-prompt="What feels heaviest on my heart right now is... and the kindest thing I can tell myself is..." style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border); color: var(--text-secondary); transition: var(--transition-smooth);">
+              💭 <em class="small">"What feels heaviest on my heart right now is..."</em>
             </button>
-            <button type="button" class="btn btn-sm btn-outline-secondary text-start prompt-click p-2 rounded" data-prompt="A challenge I faced recently was... and what I learned about my resilience is...">
-              🛡️ <em>"A challenge I faced and what I learned..."</em>
+            <button type="button" class="btn text-start prompt-click p-3 rounded-4 w-100" data-prompt="A challenge I encountered recently was... and what it showed me about my inner strength is..." style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border); color: var(--text-secondary); transition: var(--transition-smooth);">
+              🛡️ <em class="small">"A challenge I faced and what it taught me..."</em>
             </button>
-            <button type="button" class="btn btn-sm btn-outline-secondary text-start prompt-click p-2 rounded" data-prompt="If I spoke to myself with the same kindness I offer a good friend, I would say...">
-              ❤️ <em>"Speaking to myself with unconditional kindness..."</em>
+            <button type="button" class="btn text-start prompt-click p-3 rounded-4 w-100" data-prompt="If I spoke to myself with the gentle compassion I give to those I love, I would say..." style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border); color: var(--text-secondary); transition: var(--transition-smooth);">
+              ❤️ <em class="small">"Speaking to myself with unconditional kindness..."</em>
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Card 2: The Neuroscience of Expressive Writing -->
-      <div class="card glass overflow-hidden card-hover">
+      <!-- Card 2: Neuroscience of Expressive Writing -->
+      <div class="card overflow-hidden card-hover">
         <div class="img-container-overflow">
           <img src="{{ url_for('static', filename='img/peaceful-morning.jpg') }}" alt="Mindful Writing" class="card-img-top-cover">
         </div>
         <div class="p-4">
-          <h5 class="fw-bold text-white mb-2"><i class="bi bi-brain text-info me-2"></i>Why Expressive Writing Works</h5>
-          <p class="text-secondary small mb-2" style="line-height: 1.55;">
-            Psychological research pioneered by Dr. James Pennebaker shows that translating emotional turmoil into structured language down-regulates amygdala hyperactivity.
+          <h5 class="fw-bold text-white mb-2"><i class="bi bi-brain text-info me-2"></i>Why Journaling Heals</h5>
+          <p class="text-muted small mb-2" style="line-height: 1.6;">
+            Translating diffuse emotional suffering into coherent sentences creates cognitive distance. Research shows expressive journaling calms amygdala reactivity and boosts working memory.
           </p>
-          <ul class="text-secondary small ps-3 mb-0">
-            <li class="mb-1"><strong>Cognitive Externalization:</strong> Removes looping intrusive thoughts.</li>
-            <li class="mb-1"><strong>Emotional Labeling:</strong> Naming an emotion immediately dampens its intensity.</li>
-            <li><strong>Safety Feedback:</strong> Agent 5 verifies your wellbeing tone in real time.</li>
+          <ul class="text-muted small ps-3 mb-0" style="line-height: 1.65;">
+            <li class="mb-1"><strong>Cognitive Distance:</strong> You become the observer of the emotion, not the captive.</li>
+            <li class="mb-1"><strong>Affect Labeling:</strong> Naming emotional distress reduces physiological tension.</li>
+            <li><strong>Safety Safeguard:</strong> Agent 5 verifies tone and prioritizes crisis triage if needed.</li>
           </ul>
         </div>
       </div>
 
       <!-- Card 3: Support Contact -->
-      <div class="card glass p-4 card-hover">
+      <div class="card p-4 card-hover">
         <div class="d-flex align-items-center gap-3">
           <img src="{{ url_for('static', filename='img/support-icon.svg') }}" alt="Crisis Support" width="48" height="48">
           <div>
             <h6 class="fw-bold text-white mb-1">Need Immediate Support?</h6>
-            <p class="text-muted small mb-0">If journaling reveals overwhelming distress, connect with free 24/7 crisis helplines anytime.</p>
+            <p class="text-muted small mb-0">Free, confidential 24/7 human crisis support is always available whenever you need it.</p>
           </div>
         </div>
       </div>
@@ -185,7 +185,7 @@ document.getElementById("journalForm").addEventListener("submit", function(e) {
   .then(r => r.json())
   .then(data => {
     btn.disabled = false;
-    btn.innerHTML = `<i class="bi bi-save me-1"></i> Save Entry & Analyze`;
+    btn.innerHTML = `<i class="bi bi-save me-1"></i> Save Entry & Analyze Tone`;
 
     const card = document.getElementById("journalResultCard");
     card.classList.remove("d-none");
@@ -203,11 +203,11 @@ document.getElementById("journalForm").addEventListener("submit", function(e) {
       const sBadge = document.getElementById("sentimentBadge");
       sBadge.innerText = data.sentiment;
       if (data.sentiment === "positive") {
-        sBadge.className = "badge bg-success";
+        sBadge.className = "badge bg-success rounded-pill";
       } else if (data.sentiment === "negative") {
-        sBadge.className = "badge bg-danger";
+        sBadge.className = "badge bg-danger rounded-pill";
       } else {
-        sBadge.className = "badge bg-secondary";
+        sBadge.className = "badge bg-secondary rounded-pill";
       }
     }
 
@@ -215,7 +215,7 @@ document.getElementById("journalForm").addEventListener("submit", function(e) {
   })
   .catch(err => {
     btn.disabled = false;
-    btn.innerHTML = `<i class="bi bi-save me-1"></i> Save Entry & Analyze`;
+    btn.innerHTML = `<i class="bi bi-save me-1"></i> Save Entry & Analyze Tone`;
     alert("Error saving journal entry: " + err);
   });
 });

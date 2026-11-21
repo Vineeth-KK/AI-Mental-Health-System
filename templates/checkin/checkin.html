@@ -1,41 +1,41 @@
 {% extends "base.html" %}
-{% block title %}Daily Check‑In – CareAI Mental Health Monitor{% endblock %}
+{% block title %}Daily Check‑In – CareAI Capacity Monitor{% endblock %}
 
 {% block content %}
 <div class="row g-4">
-  <!-- Left Column: Form & History -->
+  <!-- Left Column: Assessment Form & History -->
   <div class="col-lg-7 col-xl-8">
-    <!-- Hero Banner Card -->
-    <div class="card border-0 overflow-hidden mb-4 p-0 position-relative" style="background: linear-gradient(135deg, rgba(14, 21, 37, 0.94) 0%, rgba(9, 13, 24, 0.98) 100%); border-radius: 18px;">
-      <div style="position: absolute; right: 0; top: 0; bottom: 0; width: 50%; background-image: url('{{ url_for('static', filename='img/healthy-mind.jpg') }}'); background-size: cover; background-position: center; opacity: 0.12; pointer-events: none; mask-image: linear-gradient(to right, transparent, black 60%); -webkit-mask-image: linear-gradient(to right, transparent, black 60%);"></div>
+    <!-- Hero Banner Card (Mira Life Style) -->
+    <div class="hero-mira p-4 mb-4">
+      <div style="position: absolute; right: 0; top: 0; bottom: 0; width: 55%; background-image: url('{{ url_for('static', filename='img/healthy-mind.jpg') }}'); background-size: cover; background-position: center; opacity: 0.16; pointer-events: none; mask-image: linear-gradient(to right, transparent, black 65%); -webkit-mask-image: linear-gradient(to right, transparent, black 65%);"></div>
 
       <div class="row g-0 align-items-center position-relative" style="z-index: 1;">
-        <div class="col-md-7 p-4">
-          <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-success bg-opacity-20 border border-success border-opacity-30 text-success small fw-semibold mb-2">
-            <i class="bi bi-heart-pulse-fill"></i> Agent 3: Distress Analysis
+        <div class="col-md-8 pe-md-3">
+          <div class="pill-badge pill-badge-warm mb-2">
+            <i class="bi bi-heart-pulse-fill"></i> Agent 3: Distress Normalization
           </div>
-          <h3 class="fw-bold text-white mb-2">Daily Wellbeing Assessment</h3>
-          <p class="text-secondary small mb-0" style="line-height: 1.6;">
-            Take a quiet moment to rate your 5 core indicators. CareAI normalizes your scores into a clinical distress index (0.00 – 1.00) to identify subtle shifts before they escalate.
+          <h2 class="hero-title text-white mb-2">Daily Wellbeing Check‑In</h2>
+          <p class="text-secondary small mb-0" style="line-height: 1.65; max-width: 520px;">
+            A mindful 60-second reflection to measure your 5 core indicators. CareAI computes a deterministic distress index (0.00 – 1.00) to protect your capacity before burnout sets in.
           </p>
         </div>
-        <div class="col-md-5 d-none d-md-block text-center p-3">
-          <img src="{{ url_for('static', filename='img/checkin-hero.svg') }}" alt="Daily Check-In Illustration" class="img-fluid hero-hover" style="max-height: 160px; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.45));">
+        <div class="col-md-4 d-none d-md-block text-center p-2">
+          <img src="{{ url_for('static', filename='img/checkin-hero.svg') }}" alt="Daily Check-In Illustration" class="img-fluid hero-hover" style="max-height: 160px; filter: drop-shadow(0 12px 24px rgba(0,0,0,0.5));">
         </div>
       </div>
     </div>
 
     <!-- Check-in Form Card -->
-    <div class="card glass p-4 mb-4" style="border-radius: 18px;">
+    <div class="card p-4 mb-4">
       <!-- Live Score Badge Preview -->
-      <div class="p-3 mb-4 rounded bg-dark bg-opacity-75 border border-secondary border-opacity-50 d-flex justify-content-between align-items-center">
+      <div class="p-3 mb-4 rounded-4 d-flex justify-content-between align-items-center" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border);">
         <div>
-          <span class="text-muted small d-block fw-semibold text-uppercase">Real-Time Distress Indicator Preview</span>
-          <span id="previewScore" class="fs-4 fw-bold text-light">0.26</span>
+          <span class="text-muted small d-block fw-semibold text-uppercase tracking-wider">Real-Time Distress Indicator</span>
+          <span id="previewScore" class="fs-4 fw-bold text-white">0.26</span>
           <span class="text-muted small">/ 1.00</span>
         </div>
         <div>
-          <span id="previewBadge" class="badge badge-low text-uppercase px-3 py-2 fs-6">Low</span>
+          <span id="previewBadge" class="badge badge-low text-uppercase px-3 py-2 fs-6 rounded-pill">Low</span>
         </div>
       </div>
 
@@ -43,14 +43,14 @@
         <!-- Metric 1: Mood -->
         <div class="mb-4">
           <div class="d-flex justify-content-between align-items-center mb-1">
-            <label class="form-label fw-semibold text-light mb-0">
+            <label class="form-label fw-semibold text-white mb-0">
               <i class="bi bi-emoji-smile text-success me-1"></i> Overall Mood (Higher is Better)
             </label>
-            <span id="moodVal" class="badge bg-secondary px-2 py-1">7 / 10</span>
+            <span id="moodVal" class="pill-badge pill-badge-emerald py-1 px-2">7 / 10</span>
           </div>
           <input type="range" class="form-range metric-slider" id="mood" min="1" max="10" value="7">
           <div class="d-flex justify-content-between text-muted small">
-            <span>1 (Extremely Depressed / Flat)</span>
+            <span>1 (Depleted / Exhausted)</span>
             <span>10 (Optimistic / Energized)</span>
           </div>
         </div>
@@ -58,10 +58,10 @@
         <!-- Metric 2: Anxiety -->
         <div class="mb-4">
           <div class="d-flex justify-content-between align-items-center mb-1">
-            <label class="form-label fw-semibold text-light mb-0">
+            <label class="form-label fw-semibold text-white mb-0">
               <i class="bi bi-heart-pulse text-warning me-1"></i> Anxiety Level (Lower is Better)
             </label>
-            <span id="anxietyVal" class="badge bg-secondary px-2 py-1">3 / 10</span>
+            <span id="anxietyVal" class="pill-badge pill-badge-warm py-1 px-2">3 / 10</span>
           </div>
           <input type="range" class="form-range metric-slider" id="anxiety" min="1" max="10" value="3">
           <div class="d-flex justify-content-between text-muted small">
@@ -73,14 +73,14 @@
         <!-- Metric 3: Stress -->
         <div class="mb-4">
           <div class="d-flex justify-content-between align-items-center mb-1">
-            <label class="form-label fw-semibold text-light mb-0">
+            <label class="form-label fw-semibold text-white mb-0">
               <i class="bi bi-lightning text-danger me-1"></i> Stress Level (Lower is Better)
             </label>
-            <span id="stressVal" class="badge bg-secondary px-2 py-1">4 / 10</span>
+            <span id="stressVal" class="pill-badge py-1 px-2 text-danger" style="background: rgba(244, 63, 94, 0.15); border-color: rgba(244, 63, 94, 0.3);">4 / 10</span>
           </div>
           <input type="range" class="form-range metric-slider" id="stress" min="1" max="10" value="4">
           <div class="d-flex justify-content-between text-muted small">
-            <span>1 (In Full Control / Manageable)</span>
+            <span>1 (Fully in Control)</span>
             <span>10 (Overwhelmed / Imminent Burnout)</span>
           </div>
         </div>
@@ -88,14 +88,14 @@
         <!-- Metric 4: Sleep Quality -->
         <div class="mb-4">
           <div class="d-flex justify-content-between align-items-center mb-1">
-            <label class="form-label fw-semibold text-light mb-0">
+            <label class="form-label fw-semibold text-white mb-0">
               <i class="bi bi-moon-stars text-info me-1"></i> Sleep Quality (Higher is Better)
             </label>
-            <span id="sleepVal" class="badge bg-secondary px-2 py-1">8 / 10</span>
+            <span id="sleepVal" class="pill-badge pill-badge-blue py-1 px-2">8 / 10</span>
           </div>
           <input type="range" class="form-range metric-slider" id="sleep_quality" min="1" max="10" value="8">
           <div class="d-flex justify-content-between text-muted small">
-            <span>1 (Insomnia / Disrupted)</span>
+            <span>1 (Insomnia / Fragmented)</span>
             <span>10 (Deep / Fully Restorative)</span>
           </div>
         </div>
@@ -103,32 +103,32 @@
         <!-- Metric 5: Isolation -->
         <div class="mb-4">
           <div class="d-flex justify-content-between align-items-center mb-1">
-            <label class="form-label fw-semibold text-light mb-0">
+            <label class="form-label fw-semibold text-white mb-0">
               <i class="bi bi-people text-primary me-1"></i> Social Isolation (Lower is Better)
             </label>
-            <span id="isolationVal" class="badge bg-secondary px-2 py-1">2 / 10</span>
+            <span id="isolationVal" class="pill-badge py-1 px-2 text-info" style="background: rgba(6, 182, 212, 0.15); border-color: rgba(6, 182, 212, 0.3);">2 / 10</span>
           </div>
           <input type="range" class="form-range metric-slider" id="isolation_score" min="1" max="10" value="2">
           <div class="d-flex justify-content-between text-muted small">
-            <span>1 (Closely Connected / Supported)</span>
-            <span>10 (Isolated / Withdrawn)</span>
+            <span>1 (Connected & Supported)</span>
+            <span>10 (Completely Cut Off / Isolated)</span>
           </div>
         </div>
 
-        <button type="submit" id="submitCheckinBtn" class="btn btn-primary w-100 py-3 fw-semibold shadow-sm fs-6">
+        <button type="submit" id="submitCheckinBtn" class="btn-mira-primary w-100 py-3 mt-2 fs-6">
           <i class="bi bi-check2-circle me-1"></i> Save Assessment & Run Multi-Agent Evaluation
         </button>
       </form>
     </div>
 
     <!-- Multi-Agent Evaluation Feedback Card (Shown after submit) -->
-    <div id="resultCard" class="card glass p-4 mb-4 d-none" style="border-radius: 18px;">
+    <div id="resultCard" class="card p-4 mb-4 d-none">
       <div class="d-flex align-items-center gap-2 mb-3">
         <img src="{{ url_for('static', filename='img/bot-avatar.svg') }}" alt="CareAI" width="36" height="36" class="rounded-circle">
         <h4 class="fw-bold mb-0 text-white">Multi-Agent AI Evaluation</h4>
       </div>
       
-      <div id="safetyBanner" class="alert alert-danger d-none mb-3 border-danger">
+      <div id="safetyBanner" class="alert alert-danger d-none mb-3 border-danger rounded-4">
         <h5 class="alert-heading fw-bold d-flex align-items-center gap-2">
           <img src="{{ url_for('static', filename='img/support-icon.svg') }}" alt="Support" width="28" height="28">
           Safety Concern Flagged
@@ -136,23 +136,23 @@
         <p id="safetyText" class="mb-0 small"></p>
       </div>
 
-      <div class="p-3 rounded bg-dark bg-opacity-75 mb-3 border border-secondary border-opacity-25">
-        <p id="agentResponse" class="mb-0 text-light"></p>
+      <div class="p-3 rounded-4 mb-3" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border);">
+        <p id="agentResponse" class="mb-0 text-light" style="line-height: 1.65;"></p>
       </div>
 
-      <h6 class="fw-bold text-muted small text-uppercase mb-2">Recommended Wellbeing Exercises</h6>
+      <h6 class="fw-bold text-muted small text-uppercase mb-2 tracking-wider">Recommended Wellbeing Exercises</h6>
       <div id="recommendationsList" class="d-flex flex-column gap-2 mb-3"></div>
 
       <div class="text-end">
-        <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-outline-light btn-sm">
-          <i class="bi bi-arrow-left"></i> Return to Dashboard
+        <a href="{{ url_for('dashboard.dashboard') }}" class="btn-mira-outline btn-sm text-decoration-none">
+          <i class="bi bi-arrow-left me-1"></i> Return to Dashboard
         </a>
       </div>
     </div>
 
     <!-- Recent Check-Ins History -->
-    <div class="card glass p-4" style="border-radius: 18px;">
-      <h5 class="fw-bold mb-3 text-white"><i class="bi bi-clock-history me-1 text-primary"></i> Assessment History</h5>
+    <div class="card p-4">
+      <h5 class="fw-bold mb-3 text-white"><i class="bi bi-clock-history me-1" style="color: var(--accent-warm);"></i> Assessment History</h5>
       {% if recent_checkins %}
       <div class="table-responsive">
         <table class="table table-dark table-hover table-sm align-middle">
@@ -172,15 +172,15 @@
             {% for c in recent_checkins %}
             <tr>
               <td>{{ c.timestamp.strftime('%b %d, %H:%M') if c.timestamp else '' }}</td>
-              <td><span class="badge bg-success bg-opacity-25 text-success">{{ c.mood }}/10</span></td>
-              <td><span class="badge bg-warning bg-opacity-25 text-warning">{{ c.anxiety }}/10</span></td>
-              <td><span class="badge bg-danger bg-opacity-25 text-danger">{{ c.stress }}/10</span></td>
-              <td><span class="badge bg-info bg-opacity-25 text-info">{{ c.sleep_quality }}/10</span></td>
-              <td><span class="badge bg-secondary bg-opacity-25 text-light">{{ c.isolation_score }}/10</span></td>
-              <td class="fw-bold text-primary">{{ "%.2f"|format(c.distress_score) if c.distress_score is not none else '--' }}</td>
+              <td><span class="badge bg-success bg-opacity-20 text-success rounded-pill">{{ c.mood }}/10</span></td>
+              <td><span class="badge bg-warning bg-opacity-20 text-warning rounded-pill">{{ c.anxiety }}/10</span></td>
+              <td><span class="badge bg-danger bg-opacity-20 text-danger rounded-pill">{{ c.stress }}/10</span></td>
+              <td><span class="badge bg-info bg-opacity-20 text-info rounded-pill">{{ c.sleep_quality }}/10</span></td>
+              <td><span class="badge bg-secondary bg-opacity-20 text-light rounded-pill">{{ c.isolation_score }}/10</span></td>
+              <td class="fw-bold" style="color: var(--accent-warm);">{{ "%.2f"|format(c.distress_score) if c.distress_score is not none else '--' }}</td>
               <td>
                 {% set l = c.distress_level or 'low' %}
-                <span class="badge badge-{{ l }} text-uppercase small">{{ l }}</span>
+                <span class="badge badge-{{ l }} text-uppercase small rounded-pill">{{ l }}</span>
               </td>
             </tr>
             {% endfor %}
@@ -193,56 +193,56 @@
     </div>
   </div>
 
-  <!-- Right Sidebar: Visual Elements & Mindful Tools -->
+  <!-- Right Sidebar: Mira Breathing Visualizer & Context -->
   <div class="col-lg-5 col-xl-4">
     <div class="d-flex flex-column gap-4">
-      <!-- Card 1: Mindful Breathing Visualizer -->
-      <div class="card glass overflow-hidden card-hover">
+      <!-- Card 1: Mira Zen Breathing Visualizer -->
+      <div class="card overflow-hidden card-hover">
         <div class="img-container-overflow">
           <img src="{{ url_for('static', filename='img/mindfulness-breathing.jpg') }}" alt="Breathing Visualizer" class="card-img-top-cover">
         </div>
         <div class="p-4">
           <h5 class="fw-bold text-white mb-2"><i class="bi bi-wind text-info me-2"></i>Calm Breathing Visualizer</h5>
-          <p class="text-secondary small mb-3">Sync your breath with the circle below before recording your ratings.</p>
+          <p class="text-muted small mb-3">Sync your inhalation and exhalation with the rhythm below before rating your state.</p>
           
           <div class="breathing-box my-3">
             <div class="breathing-circle">
               <span class="text-white small fw-bold">BREATHE</span>
             </div>
-            <span class="badge bg-secondary bg-opacity-50 text-light small px-3 py-1">Inhale 4s &bull; Hold 7s &bull; Exhale 8s</span>
+            <span class="pill-badge pill-badge-warm small py-1 px-3">Inhale 4s &bull; Hold 7s &bull; Exhale 8s</span>
           </div>
 
-          <div class="text-muted small">
-            <i class="bi bi-info-circle text-primary me-1"></i> Regulating your breath slows heart rate and activates the vagus nerve.
+          <div class="text-muted small" style="line-height: 1.55;">
+            <i class="bi bi-info-circle text-primary me-1"></i> Controlled breathing stimulates the vagus nerve, immediately signaling safety to the autonomic nervous system.
           </div>
         </div>
       </div>
 
-      <!-- Card 2: Clinical Significance -->
-      <div class="card glass overflow-hidden card-hover">
+      <!-- Card 2: Scientific Significance -->
+      <div class="card overflow-hidden card-hover">
         <div class="img-container-overflow">
           <img src="{{ url_for('static', filename='img/calm-nature-lake.jpg') }}" alt="Clinical Science" class="card-img-top-cover">
         </div>
         <div class="p-4">
           <h5 class="fw-bold text-white mb-2"><i class="bi bi-journal-medical text-primary me-2"></i>Why Daily Metrics Matter</h5>
-          <p class="text-secondary small mb-3" style="line-height: 1.55;">
-            Mental health shifts happen gradually. By computing a weighted composite distress index, Agent 3 helps uncover early signs of burnout, sleep debt, and social withdrawal.
+          <p class="text-muted small mb-3" style="line-height: 1.6;">
+            Mental capacity fluctuates subtly. By normalizing your structured ratings, Agent 3 detects micro-shifts in distress trajectory before acute burnout or depression can settle in.
           </p>
-          <ul class="text-secondary small ps-3 mb-0">
-            <li class="mb-1"><strong>Mood & Sleep:</strong> Primary drivers of emotional resilience.</li>
-            <li class="mb-1"><strong>Anxiety & Stress:</strong> Physiological arousal indicators.</li>
-            <li><strong>Isolation:</strong> Key predictor of persistent distress.</li>
+          <ul class="text-muted small ps-3 mb-0" style="line-height: 1.65;">
+            <li class="mb-1"><strong>Mood & Sleep:</strong> Foundations of emotional resilience.</li>
+            <li class="mb-1"><strong>Anxiety & Stress:</strong> Indicators of sympathetic nervous overdrive.</li>
+            <li><strong>Isolation:</strong> Leading predictor of persistent distress.</li>
           </ul>
         </div>
       </div>
 
       <!-- Card 3: Confidential Isolation -->
-      <div class="card glass p-4 card-hover">
+      <div class="card p-4 card-hover">
         <div class="d-flex align-items-center gap-3">
           <img src="{{ url_for('static', filename='img/support-icon.svg') }}" alt="Confidential" width="48" height="48">
           <div>
             <h6 class="fw-bold text-white mb-1">Confidential & Isolated</h6>
-            <p class="text-muted small mb-0">Your check-in responses are strictly stored in your local encrypted profile.</p>
+            <p class="text-muted small mb-0">Your daily entries are kept exclusively in your isolated encrypted account.</p>
           </div>
         </div>
       </div>
@@ -276,7 +276,7 @@ function computePreview() {
   document.getElementById("previewScore").innerText = scoreFixed;
 
   const badge = document.getElementById("previewBadge");
-  badge.className = "badge text-uppercase px-3 py-2 fs-6 ";
+  badge.className = "badge text-uppercase px-3 py-2 fs-6 rounded-pill ";
   if (score < 0.35) {
     badge.className += "badge-low";
     badge.innerText = "Low Distress";
@@ -342,8 +342,10 @@ document.getElementById("checkinForm").addEventListener("submit", function(e) {
     if (data.recommendations && data.recommendations.length > 0) {
       data.recommendations.forEach(r => {
         const item = document.createElement("div");
-        item.className = "p-2 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-25 small text-light";
-        item.innerHTML = `<strong>•</strong> ${r}`;
+        item.className = "p-3 rounded-4 small text-light";
+        item.style.background = "rgba(255, 255, 255, 0.03)";
+        item.style.border = "1px solid var(--card-border)";
+        item.innerHTML = `<strong class="text-warning me-1">•</strong> ${r}`;
         recsList.appendChild(item);
       });
     }
