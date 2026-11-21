@@ -42,7 +42,7 @@ class Config:
     is_cloud_env = bool(os.getenv('RENDER') or os.getenv('PORT') or os.getenv('DYNO'))
 
     if is_cloud_env and (not configured_host or '127.0.0.1' in configured_host or 'localhost' in configured_host):
-        OLLAMA_HOST = 'https://render-tyler-time-adsl.trycloudflare.com'
+        OLLAMA_HOST = 'https://fence-ross-spotlight-remains.trycloudflare.com'
     else:
         OLLAMA_HOST = configured_host or 'http://127.0.0.1:11434'
     CHROMA_DB_PATH = os.path.join(basedir, "instance", "chroma_db")
