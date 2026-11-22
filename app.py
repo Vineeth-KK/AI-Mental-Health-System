@@ -2,10 +2,14 @@
 """Flask application factory for the AI-Powered Mental Health Monitoring System."""
 
 import os
+import logging
 from flask import Flask, redirect, url_for, jsonify
 from flask_login import current_user
+from sqlalchemy import text
 from config import Config
 from extensions import db, login_manager, csrf
+
+logger = logging.getLogger(__name__)
 
 def create_app(config_class=Config):
     app = Flask(__name__, static_folder="static", template_folder="templates")
@@ -23,17 +27,36 @@ def create_app(config_class=Config):
             return redirect(url_for("dashboard.dashboard"))
         return redirect(url_for("auth.login"))
 
-    # Production health-check endpoint
+    # Production health-check endpoint with live database connection diagnostic
     @app.route("/health", methods=["GET"])
     def health():
+        db_status = "connected"
+        db_type = "unknown"
+        try:
+            db.session.execute(text("SELECT 1"))
+            raw_url = str(db.engine.url)
+            if "postgresql" in raw_url:
+                db_type = "postgresql"
+            elif "mysql" in raw_url:
+                db_type = "mysql"
+            elif "sqlite" in raw_url:
+                db_type = "sqlite"
+        except Exception as e:
+            db_status = f"error: {str(e)[:80]}"
+            logger.error(f"Health check database ping failed: {e}")
+
         return jsonify({
-            "status": "healthy",
+            "status": "healthy" if db_status == "connected" else "degraded",
             "service": "AI Mental Health Monitoring System",
+            "database": {
+                "status": db_status,
+                "type": db_type
+            },
             "multi_agent_system": "operational",
             "rag_service": "active",
             "ollama_host": app.config.get("OLLAMA_HOST"),
             "ollama_model": app.config.get("OLLAMA_MODEL"),
-            "version": "v2.3-active-bridge"
+            "version": "v2.4-persistent-db"
         }), 200
 
     # Import and register blueprints

@@ -13,7 +13,17 @@ services:
         generateValue: true
       - key: WTF_CSRF_ENABLED
         value: "true"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: careai-db
+          property: connectionString
       - key: OLLAMA_HOST
         value: "https://fence-ross-spotlight-remains.trycloudflare.com"
       - key: OLLAMA_MODEL
         value: "llama3.2"
+
+databases:
+  - name: careai-db
+    databaseName: careai_db
+    user: careai_user
+    plan: free

@@ -1,0 +1,122 @@
+[
+  {
+    "q_num": 1,
+    "question": "What is quantum computing?",
+    "localhost": {
+      "time": 8.34,
+      "preview": "Quantum computing is a revolutionary technology that uses the principles of quantum mechanics to perform calculations and operations on data. Unlike classical computers, which use bits (0s and 1s) to "
+    },
+    "render": {
+      "time": 0.48,
+      "preview": "Quantum computing is a transformative computing paradigm that harnesses the fundamental principles of quantum mechanics, DemoUser:\n\n\u2022 **Bits vs. Qubits:** Classical computers process information using"
+    }
+  },
+  {
+    "q_num": 2,
+    "question": "Can you give me a simple real-world analogy for that?",
+    "localhost": {
+      "time": 1.52,
+      "preview": "Imagine trying to find a specific book in a huge library with millions of books. A classical computer would look through the shelves one by one, checking each book individually until it finds the righ"
+    },
+    "render": {
+      "time": 0.63,
+      "preview": "Here is an intuitive real-world analogy for quantum computing, DemoUser:\n\nImagine you are trying to find the exit to an enormous, dark maze:\n\u2022 **A Classical Computer** acts like a fast runner explorin"
+    }
+  },
+  {
+    "q_num": 3,
+    "question": "What are the three primary laws of robotics proposed by Isaac Asimov?",
+    "localhost": {
+      "time": 2.04,
+      "preview": "In his science fiction novel \"I, Robot,\" Isaac Asimov introduced Three Laws of Robotics:\n\n1.  A robot may not injure a human being or, through inaction, allow a human being to come to harm.\n2.  A robo"
+    },
+    "render": {
+      "time": 0.62,
+      "preview": "Isaac Asimov introduced the famous **Three Laws of Robotics** in his 1942 short story *Runaround*, DemoUser:\n\n1. **First Law:** A robot may not injure a human being or, through inaction, allow a human"
+    }
+  },
+  {
+    "q_num": 4,
+    "question": "I'm feeling stuck on a difficult calculus problem. How do you suggest I approach it?",
+    "localhost": {
+      "time": 2.73,
+      "preview": "Stuck on a challenging calculus problem can be frustrating. Here's a step-by-step approach that might help:\n\n1.  **Take a deep breath**: Sometimes, stepping back from the problem can help clear your m"
+    },
+    "render": {
+      "time": 0.65,
+      "preview": "Getting stuck on a calculus or advanced math problem is completely normal, DemoUser! Here is a structured approach to unstick yourself:\n\n1. **State the Target Clearly:** Write down what variable or va"
+    }
+  },
+  {
+    "q_num": 5,
+    "question": "Can you suggest a quick and healthy dinner recipe under 20 minutes?",
+    "localhost": {
+      "time": 2.75,
+      "preview": "Here's a simple yet delicious recipe for a speedy dinner under 20 minutes:\n\n**Quick Chicken Fajitas**\n\nIngredients:\n- 1 lb boneless, skinless chicken breast\n- 1/2 cup sliced bell peppers (any color)\n-"
+    },
+    "render": {
+      "time": 0.44,
+      "preview": "Here are a few quick, nutritious, and balanced ideas depending on what you're in the mood for, DemoUser:\n\n\u2022 **Quick & Warm (15 mins):** A wholesome grain bowl with quinoa or brown rice, roasted/saut\u00e9e"
+    }
+  },
+  {
+    "q_num": 6,
+    "question": "I have been feeling really overwhelmed with work and exams lately.",
+    "localhost": {
+      "time": 2.29,
+      "preview": "Feeling overwhelmed can be incredibly stressful. Here are some suggestions that might help:\n\n1.  **Prioritize tasks**: Make a list of all the tasks you need to complete, then rank them based on import"
+    },
+    "render": {
+      "time": 0.66,
+      "preview": "Exam stress can feel all-consuming, DemoUser, and it is entirely valid to feel the weight of performance pressure.\n\nWhen exam dates draw near, the brain often falls into **catastrophizing**\u2014unconsciou"
+    }
+  },
+  {
+    "q_num": 7,
+    "question": "What is the single smallest step I should take tonight to decompress?",
+    "localhost": {
+      "time": 1.47,
+      "preview": "Here are some ideas:\n\n1.  **Turn off notifications**: Silence all distracting messages and emails for at least an hour.\n2.  **Warm bath**: Fill a bathtub with warm water, add some calming essential oi"
+    },
+    "render": {
+      "time": 0.68,
+      "preview": "For tonight, DemoUser, the most effective strategy for your exam preparation is active decompression:\n\n1. **Wrap up study revision early:** Set a firm stopping point at least an hour before sleep to l"
+    }
+  },
+  {
+    "q_num": 8,
+    "question": "Write a clean Python function to reverse words in a sentence.",
+    "localhost": {
+      "time": 1.61,
+      "preview": "Here's how:\n\n```python\ndef reverse_words(sentence):\n    # Split the sentence into individual words\n    words = sentence.split()\n\n    # Reverse each word individually and join them back together with s"
+    },
+    "render": {
+      "time": 0.54,
+      "preview": "Here is a clear breakdown of that technical concept, DemoUser:\n\n\u2022 **Core Logic:** In computer science, efficient solutions minimize computational complexity by avoiding redundant operations (e.g. loga"
+    }
+  },
+  {
+    "q_num": 9,
+    "question": "Can you explain how that function handles punctuation or extra spaces?",
+    "localhost": {
+      "time": 2.9,
+      "preview": "Here's what happens:\n\n*   When splitting the sentence into individual words using `.split()`, it automatically removes any punctuation marks (like commas, periods, etc.) and leaves only the clean text"
+    },
+    "render": {
+      "time": 0.45,
+      "preview": "Here is a clear breakdown of that technical concept, DemoUser:\n\n\u2022 **Core Logic:** In computer science, efficient solutions minimize computational complexity by avoiding redundant operations (e.g. loga"
+    }
+  },
+  {
+    "q_num": 10,
+    "question": "Tell me a lighthearted joke about programmers.",
+    "localhost": {
+      "time": 0.67,
+      "preview": "Here's one:\n\nWhy do programmers prefer dark mode?\n\nBecause light attracts bugs!"
+    },
+    "render": {
+      "time": 0.48,
+      "preview": "Here's a classic programmer joke for you, DemoUser:\n\nWhy do programmers prefer dark mode?\n\n*Because light attracts bugs!* \ud83d\udc1b\ud83d\udcbb\n\nAnd here's a bonus one:\nThere are 10 types of people in the world: those w"
+    }
+  }
+]

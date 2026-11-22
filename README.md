@@ -135,19 +135,49 @@ All 20 test suites cover authentication, user data isolation, deterministic form
 
 ---
 
+## Database Architecture & Persistence
+
+CareAI uses an enterprise dual-tier database architecture designed for reliable persistence across both local development and cloud production:
+
+1. **Local Development (Canonical SQLite)**:
+   - Stored at an absolute canonical path (`instance/mhapp.db`).
+   - Completely persistent across application restarts.
+   - Guarded against path fragmentation or duplicate database files.
+   - Automatic additive migrations via `services/db_migration.py`.
+
+2. **Production Deployment (Managed PostgreSQL)**:
+   - Connected via the standard `DATABASE_URL` environment variable (`postgresql://...`).
+   - Automatically provisions a free managed PostgreSQL database (`careai-db`) when deployed on Render via `render.yaml`.
+   - Never stores persistent production user data in ephemeral SQLite container storage.
+   - Includes SQLAlchemy connection pooling (`pool_pre_ping=True`, `pool_recycle=300`, `pool_size=10`).
+   - Automatically creates tables and runs safe additive schema migrations on startup.
+
+3. **Session & Authentication Reliability**:
+   - 14-day persistent session cookies with `HttpOnly`, `SameSite=Lax`, and HTTPS `Secure` in production.
+   - Case-insensitive email and username lookup with whitespace normalization to prevent lost logins.
+   - Modern `VARCHAR(256)` password hashes with Werkzeug `scrypt` hashing.
+
+---
+
 ## Cloud Deployment
 
 ### 1. Render Deployment
-The repository includes `render.yaml` and `Procfile`.
+The repository includes `render.yaml` configured as a Render Blueprint with an attached persistent PostgreSQL database.
 1. Sign in to [Render](https://render.com).
-2. Create **New Web Service** and select this repository: `https://github.com/Vineeth-KK/AI-Mental-Health-System`.
-3. Render automatically reads `render.yaml` and deploys using Gunicorn on port `5000`.
+2. Go to **Blueprints** -> **New Blueprint Instance** and connect this repository: `https://github.com/Vineeth-KK/AI-Mental-Health-System`.
+3. Render automatically provisions:
+   - Web Service: `careai-mental-health-system` (Python 3.12 / Gunicorn)
+   - Persistent Database: `careai-db` (PostgreSQL)
+   - `DATABASE_URL`: Automatically linked from `careai-db` to the web service via internal connection string.
+4. If using manual service creation instead of Blueprints:
+   - Create a **PostgreSQL Database** named `careai-db` on Render (Free tier).
+   - In your Web Service settings, add the environment variable `DATABASE_URL` and paste the **Internal Database URL** from your database.
 
 ### 2. Docker Deployment
 A production `Dockerfile` is included:
 ```bash
 docker build -t careai-mental-health .
-docker run -p 5000:5000 careai-mental-health
+docker run -p 5000:5000 -e DATABASE_URL="postgresql://user:pass@host:5432/dbname" careai-mental-health
 ```
 
 ---

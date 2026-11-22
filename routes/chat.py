@@ -1,6 +1,8 @@
 # routes/chat.py
 """Routes for AI Chat interface and multi-agent conversation with persistent conversation memory."""
 
+import logging
+from datetime import datetime
 from flask import Blueprint, request, jsonify, render_template
 from flask_login import login_required, current_user
 from extensions import db
@@ -9,18 +11,24 @@ from models.checkin import CheckIn
 from agents.orchestrator import orchestrator
 from agents.distress import analyze_conversational_distress
 
+logger = logging.getLogger(__name__)
 chat_bp = Blueprint("chat", __name__)
 
 @chat_bp.route("/chat", methods=["GET"])
 @login_required
 def chat_page():
     """Renders the AI chat interface with past conversation history."""
-    past_messages = (
-        ChatMessage.query.filter_by(user_id=current_user.id)
-        .order_by(ChatMessage.timestamp.asc())
-        .limit(50)
-        .all()
-    )
+    try:
+        past_messages = (
+            ChatMessage.query.filter_by(user_id=current_user.id)
+            .order_by(ChatMessage.timestamp.asc())
+            .limit(100)
+            .all()
+        )
+    except Exception as e:
+        logger.error(f"Error fetching chat page messages for user {current_user.id}: {e}")
+        past_messages = []
+
     return render_template(
         "chat/chat.html",
         initial_messages=[m.to_dict() for m in past_messages]
@@ -29,22 +37,45 @@ def chat_page():
 @chat_bp.route("/api/chat/history", methods=["GET"])
 @login_required
 def get_history():
-    """Returns stored conversation history for the current user."""
-    messages = (
-        ChatMessage.query.filter_by(user_id=current_user.id)
-        .order_by(ChatMessage.timestamp.asc())
-        .limit(50)
-        .all()
-    )
-    return jsonify({"history": [m.to_dict() for m in messages]}), 200
+    """Returns stored conversation history for the current user with pagination."""
+    limit = request.args.get("limit", 50, type=int)
+    offset = request.args.get("offset", 0, type=int)
+    # Sanitize limit
+    limit = max(1, min(limit, 200))
+    offset = max(0, offset)
+
+    try:
+        total = ChatMessage.query.filter_by(user_id=current_user.id).count()
+        messages = (
+            ChatMessage.query.filter_by(user_id=current_user.id)
+            .order_by(ChatMessage.timestamp.asc())
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
+        return jsonify({
+            "history": [m.to_dict() for m in messages],
+            "total": total,
+            "limit": limit,
+            "offset": offset
+        }), 200
+    except Exception as e:
+        logger.error(f"Error retrieving history for user {current_user.id}: {e}")
+        return jsonify({"error": "Failed to retrieve conversation history", "history": []}), 500
 
 @chat_bp.route("/api/chat/history", methods=["DELETE"])
 @login_required
 def clear_history():
     """Clears stored conversation history for the current user."""
-    ChatMessage.query.filter_by(user_id=current_user.id).delete()
-    db.session.commit()
-    return jsonify({"success": True, "message": "Conversation history cleared."}), 200
+    try:
+        deleted_count = ChatMessage.query.filter_by(user_id=current_user.id).delete()
+        db.session.commit()
+        logger.info(f"Cleared {deleted_count} messages for user {current_user.id}")
+        return jsonify({"success": True, "message": "Conversation history cleared."}), 200
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error clearing history for user {current_user.id}: {e}")
+        return jsonify({"error": "Failed to clear history"}), 500
 
 @chat_bp.route("/api/chat", methods=["POST"])
 @login_required
@@ -56,36 +87,34 @@ def chat():
 
     user_msg = str(data["message"]).strip()
 
-    # 1. Retrieve active conversation history for context-aware multi-turn continuity
-    from datetime import datetime, timedelta
-    
+    # 1. Retrieve persistent conversation history for context-aware multi-turn continuity
     client_history = data.get("history", [])
-    recent_db_msgs = (
-        ChatMessage.query.filter_by(user_id=current_user.id)
-        .order_by(ChatMessage.timestamp.desc())
-        .limit(14)
-        .all()
-    )
-    recent_db_msgs.reverse()
-
     formatted_messages = []
-    # Prioritize active tab conversation session for context-aware multi-turn continuity
+
+    # If client passed active session history, prioritize it
     if isinstance(client_history, list) and client_history:
-        for h in client_history[-6:]:
+        for h in client_history[-10:]:
             if isinstance(h, dict) and h.get("content"):
                 role = h.get("role", "user")
                 if role in ("user", "assistant"):
                     formatted_messages.append({"role": role, "content": str(h["content"]).strip()})
-    elif recent_db_msgs:
-        # Use recent DB messages only if within an active recent session window (30 minutes)
-        last_time = recent_db_msgs[-1].timestamp
-        now_time = datetime.utcnow()
-        if last_time and (now_time - last_time).total_seconds() < 1800:
-            for msg in recent_db_msgs[-6:]:
-                if msg.role in ("user", "assistant"):
+    else:
+        # Otherwise, load recent persistent conversation history from the database
+        try:
+            recent_db_msgs = (
+                ChatMessage.query.filter_by(user_id=current_user.id)
+                .order_by(ChatMessage.timestamp.desc())
+                .limit(10)
+                .all()
+            )
+            recent_db_msgs.reverse()
+            for msg in recent_db_msgs:
+                if msg.role in ("user", "assistant") and msg.content:
                     formatted_messages.append({"role": msg.role, "content": msg.content})
+        except Exception as e:
+            logger.warning(f"Could not load past DB messages for context: {e}")
 
-    # Add the new user message to the workflow input
+    # Append the new user message to the conversational context
     formatted_messages.append({"role": "user", "content": user_msg})
 
     # 2. Persist user message to DB with calibrated distress analysis
@@ -98,26 +127,33 @@ def chat():
         sentiment=distress_signal.get("sentiment") if distress_signal else None,
         detected_emotions=distress_signal.get("detected_emotions") if distress_signal else None
     )
-    db.session.add(user_chat_record)
-    db.session.commit()
+    try:
+        db.session.add(user_chat_record)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error persisting user chat message: {e}", exc_info=True)
 
     # 3. Retrieve user's latest checkin for state context
-    latest_checkin = (
-        CheckIn.query.filter_by(user_id=current_user.id)
-        .order_by(CheckIn.timestamp.desc())
-        .first()
-    )
     checkin_dict = None
-    if latest_checkin:
-        checkin_dict = {
-            "mood": latest_checkin.mood,
-            "anxiety": latest_checkin.anxiety,
-            "stress": latest_checkin.stress,
-            "sleep_quality": latest_checkin.sleep_quality,
-            "isolation_score": latest_checkin.isolation_score,
-            "distress_score": latest_checkin.distress_score,
-            "distress_level": latest_checkin.distress_level
-        }
+    try:
+        latest_checkin = (
+            CheckIn.query.filter_by(user_id=current_user.id)
+            .order_by(CheckIn.timestamp.desc())
+            .first()
+        )
+        if latest_checkin:
+            checkin_dict = {
+                "mood": latest_checkin.mood,
+                "anxiety": latest_checkin.anxiety,
+                "stress": latest_checkin.stress,
+                "sleep_quality": latest_checkin.sleep_quality,
+                "isolation_score": latest_checkin.isolation_score,
+                "distress_score": latest_checkin.distress_score,
+                "distress_level": latest_checkin.distress_level
+            }
+    except Exception as e:
+        logger.warning(f"Could not load latest checkin for user {current_user.id}: {e}")
 
     # 4. Execute Multi-Agent Workflow
     agent_result = orchestrator.handle_chat(
@@ -137,8 +173,12 @@ def chat():
         content=reply_content,
         is_safety_override=is_safety_override
     )
-    db.session.add(assistant_chat_record)
-    db.session.commit()
+    try:
+        db.session.add(assistant_chat_record)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error persisting assistant chat message: {e}", exc_info=True)
 
     return jsonify({
         "response": reply_content,
