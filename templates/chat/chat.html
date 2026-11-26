@@ -194,7 +194,7 @@ const chatInput = document.getElementById("chatInput");
 const sendBtn = document.getElementById("sendBtn");
 const typingIndicator = document.getElementById("typingIndicator");
 
-function appendMessage(role, text, isSafetyOverride = false) {
+function appendMessage(role, text, isSafetyOverride = false, isNotice = false) {
   const row = document.createElement("div");
   
   if (role === "user") {
@@ -219,6 +219,8 @@ function appendMessage(role, text, isSafetyOverride = false) {
     
     if (isSafetyOverride) {
       bubble.innerHTML = `<div class="d-flex align-items-center gap-2 mb-1 text-danger fw-bold"><i class="bi bi-shield-exclamation"></i> Crisis Safety Support Notice</div>` + text.replace(/\n/g, "<br>");
+    } else if (isNotice) {
+      bubble.innerHTML = `<div class="d-flex align-items-center justify-content-between mb-1"><span class="fw-bold" style="color: var(--accent-warm);">CareAI Companion</span><span class="badge bg-warning bg-opacity-25 text-warning rounded-pill px-2 py-0 small"><i class="bi bi-info-circle me-1"></i>Service Notice</span></div>` + text.replace(/\n/g, "<br>");
     } else {
       bubble.innerHTML = `<div class="fw-bold mb-1" style="color: var(--accent-warm);">CareAI Companion</div>` + text.replace(/\n/g, "<br>");
     }
@@ -256,8 +258,9 @@ chatForm.addEventListener("submit", function(e) {
 
     const reply = data.response || "I am here with you. How can I help you further?";
     const isOverride = data.priority_override === true;
+    const isNotice = data.is_fallback === true || data.is_error === true;
 
-    appendMessage("assistant", reply, isOverride);
+    appendMessage("assistant", reply, isOverride, isNotice);
 
     // Save history
     conversationHistory.push({ role: "user", content: text });

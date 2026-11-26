@@ -93,13 +93,16 @@ def test_provider_resolution_groq_with_key(monkeypatch):
     monkeypatch.setenv("APP_ENV", "production")
     monkeypatch.setenv("AI_PROVIDER", "groq")
     monkeypatch.setenv("GROQ_API_KEY", "gsk_test_mock_secret_key_12345678")
-    monkeypatch.setenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    monkeypatch.setenv("GROQ_MODEL", "openai/gpt-oss-120b")
+    monkeypatch.setenv("GROQ_FALLBACK_MODEL", "openai/gpt-oss-20b")
 
     service = AIProviderService()
     status = service.get_status()
     assert status["provider"] == "groq"
     assert status["configured"] is True
     assert status["api_key_status"] == "present"
+    assert status["model"] == "openai/gpt-oss-120b"
+    assert status["fallback_model"] == "openai/gpt-oss-20b"
     assert "gsk_...5678" == status["key_preview"]
     assert "gsk_test_mock_secret_key_12345678" not in json.dumps(status)  # Secret must NOT leak
 
@@ -144,10 +147,11 @@ def test_groq_missing_api_key_returns_fallback(monkeypatch):
 
 
 def test_groq_mocked_success(monkeypatch):
-    """Verifies successful Groq chat completion with mocked HTTP response."""
+    """Verifies successful Groq chat completion with mocked HTTP response using openai/gpt-oss-120b."""
     monkeypatch.setenv("AI_PROVIDER", "groq")
     monkeypatch.setenv("GROQ_API_KEY", "gsk_test_mock_key_12345")
-    monkeypatch.setenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    monkeypatch.setenv("GROQ_MODEL", "openai/gpt-oss-120b")
+    monkeypatch.setenv("GROQ_FALLBACK_MODEL", "openai/gpt-oss-20b")
 
     mock_json = {
         "choices": [
@@ -170,7 +174,7 @@ def test_groq_mocked_success(monkeypatch):
 
         assert resp.is_fallback is False
         assert resp.provider == "groq"
-        assert resp.model == "llama-3.3-70b-versatile"
+        assert resp.model == "openai/gpt-oss-120b"
         assert "Groq hosted LLM" in resp.content
 
 
@@ -191,20 +195,21 @@ def test_groq_mocked_rate_limit(monkeypatch):
         assert "429" in (resp.fallback_reason or "")
 
 
-def test_groq_404_auto_retry_default_model(monkeypatch):
-    """Verifies that if a specified Groq model returns 404, it retries with the default 8B model."""
+def test_groq_404_auto_retry_fallback_model(monkeypatch):
+    """Verifies that if primary model returns 404, it retries with openai/gpt-oss-20b."""
     monkeypatch.setenv("AI_PROVIDER", "groq")
     monkeypatch.setenv("GROQ_API_KEY", "gsk_test_mock_key_12345")
-    monkeypatch.setenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    monkeypatch.setenv("GROQ_MODEL", "openai/gpt-oss-120b")
+    monkeypatch.setenv("GROQ_FALLBACK_MODEL", "openai/gpt-oss-20b")
 
     resp_404 = MagicMock()
     resp_404.status_code = 404
-    resp_404.text = '{"error":{"message":"The model llama-3.3-70b-versatile does not exist"}}'
+    resp_404.text = '{"error":{"message":"The model openai/gpt-oss-120b does not exist"}}'
 
     resp_200 = MagicMock()
     resp_200.status_code = 200
     resp_200.json.return_value = {
-        "choices": [{"message": {"role": "assistant", "content": "Recovered response from 8b model"}}]
+        "choices": [{"message": {"role": "assistant", "content": "Recovered response from 20b model"}}]
     }
 
     with patch("httpx.Client.post", side_effect=[resp_404, resp_200]):
@@ -212,8 +217,52 @@ def test_groq_404_auto_retry_default_model(monkeypatch):
         resp = service.chat_completion(messages=[{"role": "user", "content": "Hello"}])
 
         assert resp.is_fallback is False
-        assert resp.model == "llama-3.1-8b-instant"
-        assert resp.content == "Recovered response from 8b model"
+        assert resp.model == "openai/gpt-oss-20b"
+        assert resp.content == "Recovered response from 20b model"
+
+
+def test_groq_does_not_repeatedly_retry_unavailable_models(monkeypatch):
+    """Verifies that models marked unavailable are not repeatedly requested."""
+    monkeypatch.setenv("AI_PROVIDER", "groq")
+    monkeypatch.setenv("GROQ_API_KEY", "gsk_test_mock_key_12345")
+    monkeypatch.setenv("GROQ_MODEL", "unavailable-model-id")
+    monkeypatch.setenv("GROQ_FALLBACK_MODEL", "openai/gpt-oss-20b")
+
+    service = AIProviderService()
+    service._unavailable_models.add("unavailable-model-id")
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "choices": [{"message": {"role": "assistant", "content": "Directly routed to fallback"}}]
+    }
+
+    with patch("httpx.Client.post", return_value=mock_resp) as mock_post:
+        resp = service.chat_completion(messages=[{"role": "user", "content": "Hello"}])
+        assert resp.model == "openai/gpt-oss-20b"
+        # Ensure post was called with fallback model, NOT the unavailable one
+        call_payload = mock_post.call_args[1]["json"]
+        assert call_payload["model"] == "openai/gpt-oss-20b"
+
+
+def test_groq_verified_models_discovery(monkeypatch):
+    """Verifies that get_verified_models discovers available models from the Groq Models API."""
+    service = AIProviderService()
+    mock_models_resp = MagicMock()
+    mock_models_resp.status_code = 200
+    mock_models_resp.json.return_value = {
+        "data": [
+            {"id": "openai/gpt-oss-120b"},
+            {"id": "openai/gpt-oss-20b"},
+            {"id": "meta-llama/llama-prompt-guard-2-86m"}
+        ]
+    }
+
+    with patch("httpx.Client.get", return_value=mock_models_resp):
+        verified = service.get_verified_models("gsk_valid_key", "https://api.groq.com/openai/v1")
+        assert "openai/gpt-oss-120b" in verified
+        assert "openai/gpt-oss-20b" in verified
+        assert len(verified) == 3
 
 
 # ---------------------------------------------------------------------
@@ -295,7 +344,8 @@ def test_health_endpoint_diagnostics(client, monkeypatch):
     monkeypatch.setenv("APP_ENV", "production")
     monkeypatch.setenv("AI_PROVIDER", "groq")
     monkeypatch.setenv("GROQ_API_KEY", "gsk_mock_production_key_abcdef")
-    monkeypatch.setenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    monkeypatch.setenv("GROQ_MODEL", "openai/gpt-oss-120b")
+    monkeypatch.setenv("GROQ_FALLBACK_MODEL", "openai/gpt-oss-20b")
 
     resp = client.get("/health")
     assert resp.status_code == 200
@@ -305,6 +355,68 @@ def test_health_endpoint_diagnostics(client, monkeypatch):
     assert data["version"].startswith("v2.")
     assert "ai_provider" in data
     assert data["ai_provider"]["provider"] == "groq"
-    assert data["ai_provider"]["model"] == "llama-3.3-70b-versatile"
+    assert data["ai_provider"]["model"] == "openai/gpt-oss-120b"
     assert data["ai_provider"]["configured"] is True
     assert "gsk_mock_production_key_abcdef" not in resp.text  # Strict credential protection
+
+
+# ---------------------------------------------------------------------
+# 6. Conversational Diversity & Multi-Turn Context Tests (Phase 6 Scenarios)
+# ---------------------------------------------------------------------
+
+def test_conversation_scenario_1_what_is_stress():
+    """Test 1: Ask 'What is stress?' - Must receive rich, relevant definition without generic stock repetition."""
+    reply = generate_llm_response(
+        messages=[{"role": "user", "content": "What is stress?"}],
+        user_name="Jordan"
+    )
+    assert "stress" in reply.lower()
+    assert any(w in reply.lower() for w in ["threat", "body", "demand", "response", "cortisol", "pressure", "biological"])
+    assert "When looking at what is stress, the most practical approach" not in reply
+
+
+def test_conversation_scenario_2_symptoms_of_anxiety():
+    """Test 2: Ask 'What are the symptoms of anxiety?' - Must receive distinct symptom explanation."""
+    reply = generate_llm_response(
+        messages=[{"role": "user", "content": "What are the symptoms of anxiety?"}],
+        user_name="Jordan"
+    )
+    assert ("anxiety" in reply.lower() or "anxious" in reply.lower())
+    assert any(w in reply.lower() for w in ["symptom", "physical", "worry", "body", "mind", "heart", "racing", "nervous"])
+    assert "When looking at" not in reply
+
+
+def test_conversation_scenario_3_how_can_i_improve_my_sleep():
+    """Test 3: Ask 'How can I improve my sleep?' - Must receive evidence-based sleep hygiene guidance."""
+    reply = generate_llm_response(
+        messages=[{"role": "user", "content": "How can I improve my sleep?"}],
+        user_name="Jordan"
+    )
+    assert any(w in reply.lower() for w in ["sleep", "bedtime", "rest", "routine", "circadian", "wake"])
+    assert "When looking at" not in reply
+
+
+def test_conversation_scenario_4_multi_turn_follow_up():
+    """Test 4: Ask follow-up question related to sleep - Must maintain contextual continuity."""
+    history = [
+        {"role": "user", "content": "How can I improve my sleep?"},
+        {"role": "assistant", "content": "Here is an evidence-based framework: 1. Anchor circadian rhythm. 2. Cool Cave. 3. 20-minute stimulus control."},
+        {"role": "user", "content": "Can you explain more about how that helps?"}
+    ]
+    reply = generate_llm_response(
+        messages=history,
+        user_name="Jordan"
+    )
+    assert any(w in reply.lower() for w in ["sleep", "rest", "bed", "circadian", "body", "rhythm", "adenosine", "help", "routine"])
+    assert "When looking at" not in reply
+
+
+def test_different_questions_receive_different_responses():
+    """Verifies that different questions NEVER receive the same response."""
+    r1 = generate_llm_response([{"role": "user", "content": "What is stress?"}])
+    r2 = generate_llm_response([{"role": "user", "content": "What are the symptoms of anxiety?"}])
+    r3 = generate_llm_response([{"role": "user", "content": "How can I improve my sleep?"}])
+
+    assert r1 != r2
+    assert r2 != r3
+    assert r1 != r3

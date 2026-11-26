@@ -112,15 +112,30 @@ def generate_llm_response(
         "is_llm": not ai_resp.is_fallback,
         "is_fallback": ai_resp.is_fallback,
         "fallback_reason": ai_resp.fallback_reason if ai_resp.is_fallback else None,
-        "latency_ms": ai_resp.latency_ms
+        "latency_ms": ai_resp.latency_ms,
+        "is_error": False
     }
 
     if not ai_resp.is_fallback and ai_resp.content:
         logger.info(f"Generated response via {ai_resp.provider} ({ai_resp.model}) for {len(messages)} messages ({ai_resp.latency_ms:.1f}ms).")
         return (ai_resp.content, meta) if return_metadata else ai_resp.content
 
+    # In production cloud environment, if Groq fails, do NOT pretend that a static template is an AI response!
+    is_cloud = (os.getenv("APP_ENV", "").strip().lower() == "production" or bool(os.getenv("RENDER") or os.getenv("DYNO")))
+    if is_cloud and ai_resp.provider == "groq":
+        logger.error(f"Groq Cloud AI completion failed in cloud production: {ai_resp.fallback_reason}")
+        meta["is_error"] = True
+        err_msg = (
+            "⚠️ **CareAI Cloud AI Service Notice**\n\n"
+            "The hosted AI reasoning service is temporarily unavailable due to upstream connectivity or provider quota limits. "
+            f"(Technical diagnostic: {ai_resp.fallback_reason or 'Model unreachable'}).\n\n"
+            "Our automated health monitors have logged this event. In the meantime, please utilize the self-guided relaxation exercises "
+            "and coping strategies available in your toolkit on the right, or try sending your message again shortly."
+        )
+        return (err_msg, meta) if return_metadata else err_msg
+
     logger.info(f"AI Provider ({ai_resp.provider}) used fallback: {ai_resp.fallback_reason}. Using intelligent reasoning engine.")
-    # Contextual, intent-aware dynamic multi-turn engine
+    # Contextual, intent-aware dynamic multi-turn engine for local development
     fallback_content = _generate_intelligent_fallback(messages, rag_context, user_name)
     return (fallback_content, meta) if return_metadata else fallback_content
 
@@ -631,6 +646,41 @@ def _generate_intelligent_fallback(
             "Are you noticing anxiety as a physical sensation in your body, or more as racing thoughts in your mind?"
         )
 
+    # Symptoms of anxiety
+    if ("symptom" in user_text or "signs" in user_text) and ("anxiety" in user_text or "anxious" in user_text or "panic" in user_text):
+        return (
+            f"The symptoms of anxiety span physical, cognitive, and behavioral dimensions, {name_str}reflecting an overactive autonomic nervous system:\n\n"
+            "### 1. Physical & Somatic Symptoms:\n"
+            "• **Cardiovascular:** Palpitations, rapid resting heart rate, or fluttering in the chest.\n"
+            "• **Respiratory:** Shallow breathing, sighing, or a sensation of breathlessness (hyperventilation).\n"
+            "• **Musculoskeletal:** Clenched jaw, shoulder tightness, trembling, or tension headaches.\n"
+            "• **Gastrointestinal:** Butterflies, nausea, indigestion, or sudden stomach cramps.\n\n"
+            "### 2. Cognitive & Emotional Symptoms:\n"
+            "• **Catastrophic Anticipation:** Fixating on worst-case outcomes and feeling unable to break worry loops.\n"
+            "• **Hypervigilance:** Scanning conversations or surroundings constantly for criticism or danger.\n"
+            "• **Brain Fog:** Restlessness, difficulty concentrating, or feeling mentally depleted.\n\n"
+            "### 3. Behavioral Patterns:\n"
+            "• Procrastinating on important responsibilities, social withdrawal, or avoiding uncomfortable triggers.\n\n"
+            "Are you noticing these symptoms more as physical sensations in your body, or as persistent worries in your mind?"
+        )
+
+    # How can I improve my sleep?
+    if any(k in user_text for k in ["improve my sleep", "improve sleep", "better sleep", "how to sleep", "trouble sleeping", "help me sleep", "sleep better", "sleep tips", "insomnia", "sleeping problem", "sleep hygiene"]):
+        return (
+            f"Here is an evidence-based framework drawn from Cognitive Behavioral Therapy for Insomnia (CBT-I) to dramatically improve your sleep quality, {name_str}:\n\n"
+            "### 1. Anchor Your Circadian Rhythm:\n"
+            "• **Fixed Wake-Up Time:** Wake up at the exact same time every morning, 7 days a week, regardless of when you fell asleep. This sets your body's master circadian clock.\n"
+            "• **Morning Light Exposure:** Get 10–15 minutes of natural sunlight within 30 minutes of waking to shut off melatonin and initiate your cortisol awakening curve.\n\n"
+            "### 2. Optimize the Sleep Environment:\n"
+            "• **The Cool Cave Rule:** Keep your bedroom cool (around 65°F / 18°C), completely dark, and quiet. Core body temperature must drop by 1–2°F to initiate deep slow-wave sleep.\n"
+            "• **Digital Sunset:** Discontinue screen use at least 60 minutes before bedtime; blue light suppresses melatonin production.\n\n"
+            "### 3. The 20-Minute Stimulus Control Rule:\n"
+            "• Never stay in bed tossing and turning for more than 20 minutes. If you are awake, get out of bed, move to a dimly lit room, read a physical book or listen to ambient music, and return to bed only when truly drowsy.\n\n"
+            "### 4. Daytime Habits:\n"
+            "• Cut off caffeine at least 8–10 hours before bed, and finish heavy meals at least 3 hours before sleep.\n\n"
+            "Which of these areas—your bedtime routine, environment, or racing thoughts—is the biggest obstacle to your sleep right now?"
+        )
+
     # -------------------------------------------------------------
     # 5. MULTI-TURN CONTEXT SYNTHESIS ("What should I do tonight?")
     # -------------------------------------------------------------
@@ -877,7 +927,7 @@ def _generate_intelligent_fallback(
         )
 
     # -------------------------------------------------------------
-    # 12. GENERAL INQUIRY & OPEN CONVERSATION (Natural & Engaging)
+    # 12. MULTI-TURN FOLLOW-UP & OPEN CONVERSATION
     # -------------------------------------------------------------
     rag_snippet_str = ""
     if rag_context:
@@ -887,15 +937,53 @@ def _generate_intelligent_fallback(
                 rag_snippet_str = f"\n\n*Relevant insight:* {t[:220]}..."
                 break
 
+    # Contextual multi-turn follow-ups (e.g. "tell me more", "how does that help?", "why?")
+    is_follow_up = any(q in user_text for q in [
+        "tell me more", "explain more", "more about that", "how so", "why so", "why is that",
+        "how does that help", "how does that work", "what do you mean", "can you elaborate",
+        "what else", "give me an example", "what about", "how can that help", "can you explain"
+    ]) or (len(clean_text.split()) <= 4 and any(clean_text.startswith(w) for w in ["why", "how", "what"]))
+
+    if is_follow_up and prior_context:
+        if any(k in prior_context for k in ["sleep", "insomnia", "bed", "circadian", "drowsy"]):
+            return (
+                f"Expanding on your sleep routine, {name_str}the core biological mechanism at work is **sleep drive (adenosine)** paired with **circadian signaling**.\n\n"
+                "From the moment you wake up, adenosine accumulates in the brain, building natural sleep pressure. When you get early sunlight and keep consistent wake times, you synchronize this pressure with your evening melatonin curve.\n\n"
+                "• Avoid afternoon caffeine, because caffeine directly blocks adenosine receptors, creating fragmented sleep architecture.\n"
+                "• If anxious thoughts arise at night, keeping a notepad next to your bed for a 2-minute 'worry purge' unloads your working memory so deep slow-wave sleep can take over.{rag_snippet_str}\n\n"
+                "Would you like to explore adjusting your evening wind-down or morning light habits first?"
+            )
+        elif any(k in prior_context for k in ["anxiety", "anxious", "panic", "worry", "symptom"]):
+            return (
+                f"Diving deeper into managing anxiety symptoms, {name_str}the fastest physiological intervention is activating your **parasympathetic nervous system**.\n\n"
+                "When anxiety triggers adrenaline, taking a **physiological sigh** (two rapid inhalations through the nose followed by one long, slow exhalation through the mouth) immediately signals the brain's vagus nerve to slow heart rate.\n\n"
+                "Cognitively, paired with grounding (feeling the floor beneath your feet, observing 3 distinct sounds), this interrupts the amygdala's threat loop before it escalates.{rag_snippet_str}\n\n"
+                "Would you like to practice a quick two-minute grounding round together?"
+            )
+        elif any(k in prior_context for k in ["stress", "overwhelm", "pressure", "burnout"]):
+            return (
+                f"Looking deeper into stress management, {name_str}the key is distinguishing between **allostatic load** (the accumulated wear of chronic demands) and acute pressure.\n\n"
+                "To lower chronic cortisol:\n"
+                "1. **Micro-Boundaries:** Insert 3-minute cognitive buffers between demanding tasks—don't jump directly from one stressful event to another.\n"
+                "2. **Somatic Discharge:** Physical movement (brisk walking, stretching, or progressive muscle relaxation) metabolizes circulating stress hormones.{rag_snippet_str}\n\n"
+                "What part of your daily routine feels like it generates the most continuous pressure?"
+            )
+        elif any(k in prior_context for k in ["study", "exam", "academics"]):
+            return (
+                f"Following up on effective study and memory retention, {name_str}the most empirically proven method is **active recall combined with spaced repetition** rather than passive re-reading.\n\n"
+                "Testing yourself forces neural pathways to strengthen recall circuits. Pair this with 25-minute Pomodoro focus blocks to keep mental endurance sharp without burning out.{rag_snippet_str}\n\n"
+                "Which subject or material are you currently reviewing?"
+            )
+
     # If the user asked a question (ending in ? or starting with question words)
     if "?" in last_user_msg or any(clean_text.startswith(w) for w in ["what", "how", "why", "who", "when", "where", "can you", "could you", "tell me"]):
         words = [w for w in clean_text.split() if w not in ["what", "is", "the", "how", "why", "can", "you", "tell", "me", "about", "a", "an", "do", "does", "i", "to", "for", "in", "of", "and", "or", "please"]]
-        topic_phrase = " ".join(words[:4]) if words else "this topic"
+        topic_phrase = " ".join(words[:4]) if words else "your question"
         return (
-            f"Here is a clear perspective on {topic_phrase}{name_clause}:\n\n"
-            f"When looking at {topic_phrase}, the most practical approach is to break down the primary mechanisms step-by-step. "
-            f"Focusing on the foundational factors allows you to see the bigger picture and apply it with confidence.{rag_snippet_str}\n\n"
-            f"What specific aspect of {topic_phrase} would you like to explore further together?"
+            f"Regarding {topic_phrase}{name_clause}:\n\n"
+            f"To explore this effectively, it helps to examine the core mechanisms and practical strategies that apply to your situation. "
+            f"Breaking things down step-by-step provides clarity and concrete actions you can take with confidence.{rag_snippet_str}\n\n"
+            f"Could you share a bit more about what specific aspect of {topic_phrase} you would like to focus on?"
         )
 
     # General open statement or thought

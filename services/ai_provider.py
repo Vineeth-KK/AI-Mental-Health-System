@@ -25,7 +25,8 @@ logger = logging.getLogger(__name__)
 # Default model definitions
 DEFAULT_OLLAMA_MODEL = "llama3.2"
 DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434"
-DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant"
+DEFAULT_GROQ_PRIMARY_MODEL = "openai/gpt-oss-120b"
+DEFAULT_GROQ_FALLBACK_MODEL = "openai/gpt-oss-20b"
 DEFAULT_GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 
 
@@ -78,7 +79,9 @@ class AIProviderService:
     """Unified client managing Ollama (local) and Groq (cloud) LLM requests."""
 
     def __init__(self):
-        pass
+        self._verified_models_cache: Optional[List[str]] = None
+        self._models_cache_time: float = 0.0
+        self._unavailable_models: set = set()
 
     @staticmethod
     def get_active_provider_name() -> str:
@@ -121,12 +124,84 @@ class AIProviderService:
         return base_url, model
 
     @staticmethod
-    def get_groq_config() -> Tuple[str, str, str]:
-        """Resolves (api_key, model, base_url) for Groq."""
+    def get_groq_config() -> Tuple[str, str, str, str]:
+        """Resolves (api_key, primary_model, fallback_model, base_url) for Groq."""
         api_key = os.getenv("GROQ_API_KEY", "").strip().strip("'\"")
-        model = (os.getenv("GROQ_MODEL") or DEFAULT_GROQ_MODEL).strip()
+        primary_model = (os.getenv("GROQ_MODEL") or DEFAULT_GROQ_PRIMARY_MODEL).strip()
+        fallback_model = (os.getenv("GROQ_FALLBACK_MODEL") or DEFAULT_GROQ_FALLBACK_MODEL).strip()
         base_url = (os.getenv("GROQ_BASE_URL") or DEFAULT_GROQ_BASE_URL).rstrip("/")
-        return api_key, model, base_url
+        return api_key, primary_model, fallback_model, base_url
+
+    def get_verified_models(self, api_key: str, base_url: str, force_refresh: bool = False) -> List[str]:
+        """Queries the authenticated Groq Models API to check active, accessible models."""
+        now = time.time()
+        if not force_refresh and self._verified_models_cache is not None and (now - self._models_cache_time) < 300:
+            return self._verified_models_cache
+
+        if not api_key:
+            return []
+
+        try:
+            headers = {"Authorization": f"Bearer {api_key}"}
+            with httpx.Client(timeout=8.0) as client:
+                resp = client.get(f"{base_url}/models", headers=headers)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    model_items = data.get("data", [])
+                    models = [m.get("id") for m in model_items if isinstance(m, dict) and m.get("id")]
+                    self._verified_models_cache = models
+                    self._models_cache_time = now
+                    logger.info(f"Verified {len(models)} active Groq models via authenticated API.")
+                    return models
+                elif resp.status_code == 401:
+                    logger.error("Groq authentication failed: GROQ_API_KEY is invalid or unauthorized.")
+                elif resp.status_code == 403:
+                    logger.error("Groq access forbidden: account or project permissions restricted.")
+        except Exception as e:
+            logger.warning(f"Could not verify models from Groq Models API: {e}")
+
+        return self._verified_models_cache or []
+
+    def resolve_groq_model(self, api_key: str, base_url: str, requested_model: Optional[str] = None) -> Tuple[str, Optional[str]]:
+        """
+        Determines the best available model by checking the authenticated Groq Models API.
+        Returns (selected_model, fallback_candidate).
+        """
+        _, primary_config, fallback_config, _ = self.get_groq_config()
+        primary = requested_model or primary_config
+        fallback = fallback_config
+
+        verified = self.get_verified_models(api_key, base_url)
+        if not verified:
+            # If verification endpoint couldn't be reached, avoid known unavailable models
+            if primary in self._unavailable_models:
+                return (fallback, None)
+            return (primary, fallback if fallback not in self._unavailable_models else None)
+
+        # 1. Primary model is verified and accessible
+        if primary in verified and primary not in self._unavailable_models:
+            return (primary, fallback if (fallback in verified and fallback not in self._unavailable_models) else None)
+
+        # 2. Fallback model is verified and accessible
+        if fallback in verified and fallback not in self._unavailable_models:
+            logger.info(f"Primary model '{primary}' not available; using verified fallback '{fallback}'.")
+            return (fallback, None)
+
+        # 3. Dynamic discovery: Pick an active text chat completion model from verified list
+        chat_candidates = [
+            m for m in verified
+            if m not in self._unavailable_models
+            and not any(x in m.lower() for x in ["whisper", "guard", "embed", "safeguard", "tool", "distil", "rerank"])
+        ]
+        if chat_candidates:
+            selected = chat_candidates[0]
+            logger.warning(
+                f"Configured models '{primary}' and '{fallback}' not verified in Groq account. "
+                f"Dynamically selected active model: '{selected}'"
+            )
+            return (selected, None)
+
+        return (primary, fallback)
 
     def get_status(self, check_live: bool = False) -> Dict[str, Any]:
         """Returns safe provider diagnostics for the health check without exposing keys."""
@@ -134,30 +209,29 @@ class AIProviderService:
         app_env = os.getenv("APP_ENV", "development" if provider == "ollama" else "production")
 
         if provider == "groq":
-            api_key, model, base_url = self.get_groq_config()
+            api_key, primary_model, fallback_model, base_url = self.get_groq_config()
             is_configured = bool(api_key and len(api_key) > 8)
             masked_key = f"{api_key[:4]}...{api_key[-4:]}" if is_configured else "not_configured"
             status_data = {
                 "app_env": app_env,
                 "provider": "groq",
-                "model": model,
+                "model": primary_model,
+                "fallback_model": fallback_model,
                 "configured": is_configured,
                 "api_key_status": "present" if is_configured else "missing",
                 "key_preview": masked_key,
                 "endpoint": base_url,
-                "live_connectivity": "not_checked"
+                "live_connectivity": "not_checked",
+                "verified_models_count": len(self._verified_models_cache) if self._verified_models_cache else 0
             }
             if check_live and is_configured:
-                try:
-                    test_headers = {"Authorization": f"Bearer {api_key}"}
-                    with httpx.Client(timeout=5.0) as client:
-                        resp = client.get(f"{base_url}/models", headers=test_headers)
-                        if resp.status_code == 200:
-                            status_data["live_connectivity"] = "connected"
-                        else:
-                            status_data["live_connectivity"] = f"http_{resp.status_code}"
-                except Exception as ex:
-                    status_data["live_connectivity"] = f"error_{type(ex).__name__}"
+                verified = self.get_verified_models(api_key, base_url, force_refresh=True)
+                if verified:
+                    status_data["live_connectivity"] = "connected"
+                    status_data["verified_models_count"] = len(verified)
+                    status_data["available_models_sample"] = verified[:5]
+                else:
+                    status_data["live_connectivity"] = "models_fetch_failed"
             return status_data
         else:
             base_url, model = self.get_ollama_config()
@@ -229,9 +303,8 @@ class AIProviderService:
         override_base_url: Optional[str],
         start_time: float
     ) -> AIResponse:
-        """Executes hosted LLM completion via Groq REST API."""
-        api_key, default_model, default_base_url = self.get_groq_config()
-        model = override_model or default_model
+        """Executes hosted LLM completion via Groq REST API with dynamic model verification."""
+        api_key, _, _, default_base_url = self.get_groq_config()
         base_url = override_base_url or default_base_url
 
         if not api_key:
@@ -241,11 +314,13 @@ class AIProviderService:
                 content="",
                 raw_content="",
                 provider="groq",
-                model=model,
+                model=override_model or DEFAULT_GROQ_PRIMARY_MODEL,
                 is_fallback=True,
                 fallback_reason=err,
                 latency_ms=(time.time() - start_time) * 1000
             )
+
+        model, fallback_candidate = self.resolve_groq_model(api_key, base_url, override_model)
 
         endpoint = f"{base_url}/chat/completions"
         headers = {
@@ -283,38 +358,48 @@ class AIProviderService:
                         )
                     else:
                         reason = "Groq returned 200 OK with empty choices list"
-                elif resp.status_code == 404 and model != DEFAULT_GROQ_MODEL:
-                    logger.warning(
-                        f"Groq model '{model}' not found or accessible (HTTP 404). "
-                        f"Automatically retrying with default '{DEFAULT_GROQ_MODEL}'..."
-                    )
-                    payload["model"] = DEFAULT_GROQ_MODEL
-                    retry_resp = client.post(endpoint, headers=headers, json=payload)
-                    retry_latency = (time.time() - start_time) * 1000
-                    if retry_resp.status_code == 200:
-                        retry_data = retry_resp.json()
-                        retry_choices = retry_data.get("choices", [])
-                        if retry_choices:
-                            content = retry_choices[0].get("message", {}).get("content", "").strip()
-                            parsed = extract_json_from_text(content) if json_mode else None
-                            logger.info(f"Groq fallback completion succeeded [{DEFAULT_GROQ_MODEL}] ({retry_latency:.1f}ms).")
-                            return AIResponse(
-                                content=content,
-                                raw_content=content,
-                                provider="groq",
-                                model=DEFAULT_GROQ_MODEL,
-                                is_fallback=False,
-                                latency_ms=retry_latency,
-                                parsed_json=parsed
-                            )
-                    reason = f"Groq fallback to '{DEFAULT_GROQ_MODEL}' also returned HTTP {retry_resp.status_code}: {retry_resp.text[:120]}"
-                    logger.warning(reason)
+                elif resp.status_code == 404:
+                    self._unavailable_models.add(model)
+                    if fallback_candidate and fallback_candidate != model and fallback_candidate not in self._unavailable_models:
+                        logger.warning(
+                            f"Groq model '{model}' not accessible (HTTP 404). "
+                            f"Retrying once with verified fallback '{fallback_candidate}'..."
+                        )
+                        payload["model"] = fallback_candidate
+                        retry_resp = client.post(endpoint, headers=headers, json=payload)
+                        retry_latency = (time.time() - start_time) * 1000
+                        if retry_resp.status_code == 200:
+                            retry_data = retry_resp.json()
+                            retry_choices = retry_data.get("choices", [])
+                            if retry_choices:
+                                content = retry_choices[0].get("message", {}).get("content", "").strip()
+                                parsed = extract_json_from_text(content) if json_mode else None
+                                logger.info(f"Groq fallback completion succeeded [{fallback_candidate}] ({retry_latency:.1f}ms).")
+                                return AIResponse(
+                                    content=content,
+                                    raw_content=content,
+                                    provider="groq",
+                                    model=fallback_candidate,
+                                    is_fallback=False,
+                                    latency_ms=retry_latency,
+                                    parsed_json=parsed
+                                )
+                        elif retry_resp.status_code == 404:
+                            self._unavailable_models.add(fallback_candidate)
+                        reason = f"Groq fallback '{fallback_candidate}' failed (HTTP {retry_resp.status_code}): {retry_resp.text[:120]}"
+                        logger.warning(reason)
+                    else:
+                        reason = f"Groq model '{model}' unavailable (HTTP 404) and no verified fallback available."
+                        logger.warning(reason)
+                elif resp.status_code == 401:
+                    reason = "Groq authentication failed (HTTP 401): invalid or unauthorized API key"
+                    logger.error(reason)
+                elif resp.status_code == 403:
+                    reason = f"Groq access forbidden (HTTP 403): account permissions restricted: {resp.text[:120]}"
+                    logger.error(reason)
                 elif resp.status_code == 429:
                     reason = f"Groq rate limit exceeded (HTTP 429): {resp.text[:120]}"
                     logger.warning(reason)
-                elif resp.status_code == 401:
-                    reason = "Groq authentication failed (HTTP 401): invalid API key"
-                    logger.error(reason)
                 else:
                     reason = f"Groq returned HTTP {resp.status_code}: {resp.text[:120]}"
                     logger.warning(reason)

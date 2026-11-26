@@ -80,7 +80,8 @@ class Config:
 
     # Hosted Groq Cloud Settings (production Render inference)
     GROQ_API_KEY = os.getenv('GROQ_API_KEY', '').strip().strip("'\"")
-    GROQ_MODEL = os.getenv('GROQ_MODEL', 'llama-3.1-8b-instant').strip()
+    GROQ_MODEL = os.getenv('GROQ_MODEL', 'openai/gpt-oss-120b').strip()
+    GROQ_FALLBACK_MODEL = os.getenv('GROQ_FALLBACK_MODEL', 'openai/gpt-oss-20b').strip()
     GROQ_BASE_URL = (os.getenv('GROQ_BASE_URL') or 'https://api.groq.com/openai/v1').rstrip('/')
     GROQ_TIMEOUT = float(os.getenv('GROQ_TIMEOUT', '30.0'))
 
