@@ -191,6 +191,31 @@ def test_groq_mocked_rate_limit(monkeypatch):
         assert "429" in (resp.fallback_reason or "")
 
 
+def test_groq_404_auto_retry_default_model(monkeypatch):
+    """Verifies that if a specified Groq model returns 404, it retries with the default 8B model."""
+    monkeypatch.setenv("AI_PROVIDER", "groq")
+    monkeypatch.setenv("GROQ_API_KEY", "gsk_test_mock_key_12345")
+    monkeypatch.setenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+
+    resp_404 = MagicMock()
+    resp_404.status_code = 404
+    resp_404.text = '{"error":{"message":"The model llama-3.3-70b-versatile does not exist"}}'
+
+    resp_200 = MagicMock()
+    resp_200.status_code = 200
+    resp_200.json.return_value = {
+        "choices": [{"message": {"role": "assistant", "content": "Recovered response from 8b model"}}]
+    }
+
+    with patch("httpx.Client.post", side_effect=[resp_404, resp_200]):
+        service = AIProviderService()
+        resp = service.chat_completion(messages=[{"role": "user", "content": "Hello"}])
+
+        assert resp.is_fallback is False
+        assert resp.model == "llama-3.1-8b-instant"
+        assert resp.content == "Recovered response from 8b model"
+
+
 # ---------------------------------------------------------------------
 # 4. Agent Coverage Across Configured Provider
 # ---------------------------------------------------------------------

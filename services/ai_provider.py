@@ -283,6 +283,32 @@ class AIProviderService:
                         )
                     else:
                         reason = "Groq returned 200 OK with empty choices list"
+                elif resp.status_code == 404 and model != DEFAULT_GROQ_MODEL:
+                    logger.warning(
+                        f"Groq model '{model}' not found or accessible (HTTP 404). "
+                        f"Automatically retrying with default '{DEFAULT_GROQ_MODEL}'..."
+                    )
+                    payload["model"] = DEFAULT_GROQ_MODEL
+                    retry_resp = client.post(endpoint, headers=headers, json=payload)
+                    retry_latency = (time.time() - start_time) * 1000
+                    if retry_resp.status_code == 200:
+                        retry_data = retry_resp.json()
+                        retry_choices = retry_data.get("choices", [])
+                        if retry_choices:
+                            content = retry_choices[0].get("message", {}).get("content", "").strip()
+                            parsed = extract_json_from_text(content) if json_mode else None
+                            logger.info(f"Groq fallback completion succeeded [{DEFAULT_GROQ_MODEL}] ({retry_latency:.1f}ms).")
+                            return AIResponse(
+                                content=content,
+                                raw_content=content,
+                                provider="groq",
+                                model=DEFAULT_GROQ_MODEL,
+                                is_fallback=False,
+                                latency_ms=retry_latency,
+                                parsed_json=parsed
+                            )
+                    reason = f"Groq fallback to '{DEFAULT_GROQ_MODEL}' also returned HTTP {retry_resp.status_code}: {retry_resp.text[:120]}"
+                    logger.warning(reason)
                 elif resp.status_code == 429:
                     reason = f"Groq rate limit exceeded (HTTP 429): {resp.text[:120]}"
                     logger.warning(reason)
