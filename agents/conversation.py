@@ -12,6 +12,7 @@ import logging
 from typing import List, Dict, Any, Optional
 import httpx
 from agents.state import AgentState
+from services.ai_provider import ai_provider
 
 logger = logging.getLogger(__name__)
 
@@ -94,58 +95,21 @@ def generate_llm_response(
                 "content": str(msg.get("content", "")).strip()
             })
 
-    # Try local Ollama LLM first
-    try:
-        url = f"{host.rstrip('/')}/api/chat"
-        payload = {
-            "model": model,
-            "messages": formatted_messages,
-            "stream": False,
-            "options": {
-                "temperature": 0.72,
-                "top_p": 0.9,
-                "repeat_penalty": 1.15,
-                "repeat_last_n": 128,
-                "num_predict": 600,
-                "num_ctx": 4096
-            }
-        }
-        with httpx.Client(timeout=45.0) as client:
-            resp = client.post(url, json=payload)
-            if resp.status_code == 200:
-                data = resp.json()
-                content = data.get("message", {}).get("content", "")
-                if content and content.strip():
-                    logger.info(f"Generated dynamic response via Ollama ({model}) for {len(messages)} messages.")
-                    return content.strip()
-            else:
-                logger.warning(f"Ollama returned status {resp.status_code}: {resp.text}")
-    except Exception as e:
-        logger.info(f"Ollama inference unavailable ({e}). Checking cloud LLM or dynamic reasoning engine.")
+    # Delegate through centralized AI Provider (Ollama for local dev, Groq for cloud prod)
+    ai_resp = ai_provider.chat_completion(
+        messages=messages,
+        system_prompt=system_instruction,
+        json_mode=False,
+        temperature=0.72,
+        override_model=ollama_model if (ollama_model and ollama_model != "llama3.2") else None,
+        override_base_url=ollama_host if (ollama_host and ollama_host != "http://127.0.0.1:11434") else None
+    )
 
-    # Check for Groq API (fast cloud LLM for cloud environments like Render if key is set)
-    groq_api_key = os.getenv("GROQ_API_KEY")
-    if groq_api_key:
-        try:
-            with httpx.Client(timeout=15.0) as client:
-                resp = client.post(
-                    "https://api.groq.com/openai/v1/chat/completions",
-                    headers={"Authorization": f"Bearer {groq_api_key}", "Content-Type": "application/json"},
-                    json={
-                        "model": os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
-                        "messages": formatted_messages,
-                        "temperature": 0.7,
-                        "max_tokens": 600
-                    }
-                )
-                if resp.status_code == 200:
-                    content = resp.json().get("choices", [{}])[0].get("message", {}).get("content", "")
-                    if content and content.strip():
-                        logger.info("Generated dynamic response via Groq cloud LLM.")
-                        return content.strip()
-        except Exception as e:
-            logger.info(f"Groq API call failed: {e}")
+    if not ai_resp.is_fallback and ai_resp.content:
+        logger.info(f"Generated response via {ai_resp.provider} ({ai_resp.model}) for {len(messages)} messages ({ai_resp.latency_ms:.1f}ms).")
+        return ai_resp.content
 
+    logger.info(f"AI Provider ({ai_resp.provider}) used fallback: {ai_resp.fallback_reason}. Using intelligent reasoning engine.")
     # Contextual, intent-aware dynamic multi-turn engine
     return _generate_intelligent_fallback(messages, rag_context, user_name)
 

@@ -13,6 +13,7 @@ from typing import Dict, Any, List, Optional
 import httpx
 
 from agents.state import AgentState
+from services.ai_provider import ai_provider
 
 logger = logging.getLogger(__name__)
 
@@ -288,60 +289,67 @@ def analyze_journal_entry(
         suggestions_rule=suggestions_rule
     )
 
-    # Attempt local Ollama inference
-    try:
-        url = f"{ollama_host.rstrip('/')}/api/chat"
-        payload = {
-            "model": ollama_model,
-            "messages": [
-                {"role": "user", "content": prompt}
-            ],
-            "stream": False,
-            "format": "json",
-            "options": {
-                "temperature": 0.5,
-                "top_p": 0.9,
-                "num_predict": 450
+    # Execute through centralized AI provider (Ollama in local dev, Groq in cloud prod)
+    ai_resp = ai_provider.chat_completion(
+        messages=[{"role": "user", "content": prompt}],
+        json_mode=True,
+        temperature=0.5,
+        override_model=ollama_model if (ollama_model and ollama_model != "llama3.2") else None,
+        override_base_url=ollama_host if (ollama_host and ollama_host != "http://127.0.0.1:11434") else None
+    )
+
+    if not ai_resp.is_fallback:
+        parsed = ai_resp.parsed_json or _clean_and_parse_json(ai_resp.content)
+        if parsed and "sentiment" in parsed and "wellbeing_feedback" in parsed:
+            # Validate and normalize
+            sentiment_raw = str(parsed.get("sentiment", "Reflective")).strip().capitalize()
+            valid_sentiments = ["Positive", "Reflective", "Neutral", "Distressed", "Overwhelmed"]
+            if sentiment_raw not in valid_sentiments:
+                sentiment_raw = "Reflective"
+
+            emotions = parsed.get("emotions", [])
+            if isinstance(emotions, str):
+                emotions = [emotions]
+            elif not isinstance(emotions, list):
+                emotions = ["Reflective"]
+
+            clean_emotions = [str(e).strip() for e in emotions if str(e).strip()][:4]
+            if not clean_emotions:
+                clean_emotions = ["Quiet Calm", "Routine"] if sentiment_raw == "Neutral" else ["Reflective"]
+
+            observation = str(parsed.get("key_observation", "")).strip() or "Reflected on personal experiences."
+            feedback = str(parsed.get("wellbeing_feedback", "")).strip()
+            
+            suggestions = parsed.get("suggestions", [])
+            if opt_out_advice or not isinstance(suggestions, list):
+                suggestions = []
+
+            clean_suggestions = [str(s).strip() for s in suggestions if str(s).strip()][:3]
+            if not opt_out_advice and not clean_suggestions:
+                fallback_match = _generate_journal_fallback(journal_text, user_name, opt_out_advice)
+                clean_suggestions = fallback_match.get("suggestions", [])[:3]
+
+            logger.info(f"Successfully analyzed journal reflection via {ai_resp.provider}.")
+            return {
+                "sentiment": sentiment_raw,
+                "emotions": clean_emotions,
+                "key_observation": observation,
+                "wellbeing_feedback": feedback,
+                "suggestions": clean_suggestions,
+                "is_ai_generated": True,
+                "ai_provider": ai_resp.provider,
+                "ai_model": ai_resp.model
             }
-        }
-        with httpx.Client(timeout=35.0) as client:
-            resp = client.post(url, json=payload)
-            if resp.status_code == 200:
-                raw_json = resp.json().get("message", {}).get("content", "")
-                parsed = _clean_and_parse_json(raw_json)
-                if parsed and "sentiment" in parsed and "wellbeing_feedback" in parsed:
-                    # Validate and normalize
-                    sentiment_raw = str(parsed.get("sentiment", "Reflective")).strip().capitalize()
-                    valid_sentiments = ["Positive", "Reflective", "Neutral", "Distressed", "Overwhelmed"]
-                    if sentiment_raw not in valid_sentiments:
-                        sentiment_raw = "Reflective"
 
-                    emotions = parsed.get("emotions", [])
-                    if isinstance(emotions, str):
-                        emotions = [emotions]
-                    elif not isinstance(emotions, list):
-                        emotions = ["Reflective"]
+    logger.info(f"AI Provider ({ai_resp.provider}) used fallback: {ai_resp.fallback_reason}. Using intelligent fallback.")
+    fallback_res = _generate_journal_fallback(journal_text, user_name, opt_out_advice)
+    fallback_res["is_ai_generated"] = False
+    fallback_res["ai_provider"] = "fallback"
+    return fallback_res
 
-                    observation = str(parsed.get("key_observation", "")).strip() or "Reflected on personal experiences."
-                    feedback = str(parsed.get("wellbeing_feedback", "")).strip()
-                    
-                    suggestions = parsed.get("suggestions", [])
-                    if opt_out_advice or not isinstance(suggestions, list):
-                        suggestions = []
 
-                    logger.info("Successfully analyzed journal reflection via Ollama.")
-                    return {
-                        "sentiment": sentiment_raw,
-                        "emotions": [str(e).strip() for e in emotions if str(e).strip()][:4],
-                        "key_observation": observation,
-                        "wellbeing_feedback": feedback,
-                        "suggestions": [str(s).strip() for s in suggestions if str(s).strip()][:3]
-                    }
-    except Exception as e:
-        logger.info(f"Ollama journal inference bypassed or timed out ({e}). Using intelligent fallback.")
-
-    # Return intelligent fallback
-    return _generate_journal_fallback(journal_text, user_name, opt_out_advice)
+# Alias for backward and forward compatibility
+analyze_journal_reflection = analyze_journal_entry
 
 
 def journal_agent_node(state: AgentState) -> Dict[str, Any]:

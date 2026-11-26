@@ -9,6 +9,14 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.8
+      - key: APP_ENV
+        value: "production"
+      - key: AI_PROVIDER
+        value: "groq"
+      - key: GROQ_MODEL
+        value: "llama-3.3-70b-versatile"
+      - key: GROQ_API_KEY
+        sync: false
       - key: FLASK_SECRET_KEY
         generateValue: true
       - key: WTF_CSRF_ENABLED
@@ -17,10 +25,6 @@ services:
         fromDatabase:
           name: careai-db
           property: connectionString
-      - key: OLLAMA_HOST
-        value: "https://fence-ross-spotlight-remains.trycloudflare.com"
-      - key: OLLAMA_MODEL
-        value: "llama3.2"
 
 databases:
   - name: careai-db

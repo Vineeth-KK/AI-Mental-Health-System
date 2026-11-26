@@ -18,6 +18,7 @@ from models.journal import JournalEntry
 from models.chat import ChatMessage
 from models.checkin import CheckIn
 from agents.monitoring import analyze_trends, fetch_user_checkin_history, fetch_user_conversational_history
+from services.ai_provider import ai_provider, extract_json_from_text
 
 logger = logging.getLogger(__name__)
 
@@ -201,35 +202,34 @@ def synthesize_crisis_narrative(
         "Synthesize this factual timeline according to your instructions. Respond in strict JSON format."
     )
 
-    # 3. Attempt Ollama synthesis
-    try:
-        url = f"{ollama_host.rstrip('/')}/api/chat"
-        payload = {
-            "model": ollama_model,
-            "messages": [
-                {"role": "system", "content": NARRATIVE_SYSTEM_PROMPT},
-                {"role": "user", "content": prompt}
-            ],
-            "stream": False,
-            "format": "json",
-            "options": {"temperature": 0.3, "top_p": 0.9, "num_predict": 500}
-        }
-        with httpx.Client(timeout=35.0) as client:
-            resp = client.post(url, json=payload)
-            if resp.status_code == 200:
-                raw_json = resp.json().get("message", {}).get("content", "")
-                parsed = json.loads(raw_json)
-                if parsed and "narrative_summary" in parsed:
-                    return {
-                        "status": "success",
-                        "narrative_summary": str(parsed.get("narrative_summary", "")).strip(),
-                        "explicitly_reported_concerns": list(parsed.get("explicitly_reported_concerns", []))[:5],
-                        "recurring_themes": list(parsed.get("recurring_themes", []))[:4],
-                        "trajectory": str(parsed.get("trajectory", "stable")),
-                        "ai_observations": str(parsed.get("ai_observations", "")).strip(),
-                        "data_points_evaluated": total_records
-                    }
-    except Exception as e:
-        logger.info(f"Ollama narrative synthesis bypassed or timed out ({e}). Using intelligent fallback.")
+    # 3. Attempt synthesis via centralized AI provider (Ollama in local dev, Groq in cloud prod)
+    ai_resp = ai_provider.chat_completion(
+        messages=[{"role": "user", "content": prompt}],
+        system_prompt=NARRATIVE_SYSTEM_PROMPT,
+        json_mode=True,
+        temperature=0.3,
+        override_model=ollama_model if (ollama_model and ollama_model != "llama3.2") else None,
+        override_base_url=ollama_host if (ollama_host and ollama_host != "http://127.0.0.1:11434") else None
+    )
 
-    return _generate_fallback_narrative(journals, conv_signals, trend_data)
+    if not ai_resp.is_fallback:
+        parsed = ai_resp.parsed_json or extract_json_from_text(ai_resp.content)
+        if parsed and "narrative_summary" in parsed:
+            return {
+                "status": "success",
+                "narrative_summary": str(parsed.get("narrative_summary", "")).strip(),
+                "explicitly_reported_concerns": list(parsed.get("explicitly_reported_concerns", []))[:5],
+                "recurring_themes": list(parsed.get("recurring_themes", []))[:4],
+                "trajectory": str(parsed.get("trajectory", "stable")),
+                "ai_observations": str(parsed.get("ai_observations", "")).strip(),
+                "data_points_evaluated": total_records,
+                "is_ai_generated": True,
+                "ai_provider": ai_resp.provider,
+                "ai_model": ai_resp.model
+            }
+
+    logger.info(f"AI Provider ({ai_resp.provider}) used fallback: {ai_resp.fallback_reason}. Using intelligent fallback.")
+    fallback_res = _generate_fallback_narrative(journals, conv_signals, trend_data)
+    fallback_res["is_ai_generated"] = False
+    fallback_res["ai_provider"] = "fallback"
+    return fallback_res

@@ -45,18 +45,21 @@ def create_app(config_class=Config):
             db_status = f"error: {str(e)[:80]}"
             logger.error(f"Health check database ping failed: {e}")
 
+        from services.ai_provider import ai_provider
+        ai_status = ai_provider.get_status()
+
         return jsonify({
             "status": "healthy" if db_status == "connected" else "degraded",
             "service": "AI Mental Health Monitoring System",
+            "app_env": app.config.get("APP_ENV", "development"),
             "database": {
                 "status": db_status,
                 "type": db_type
             },
+            "ai_provider": ai_status,
             "multi_agent_system": "operational",
             "rag_service": "active",
-            "ollama_host": app.config.get("OLLAMA_HOST"),
-            "ollama_model": app.config.get("OLLAMA_MODEL"),
-            "version": "v2.4-persistent-db"
+            "version": "v2.5-dual-env"
         }), 200
 
     # Import and register blueprints

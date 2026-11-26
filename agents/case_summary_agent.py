@@ -16,6 +16,7 @@ from models.alert import SafetyAlert
 from models.case_note import CaseSummary
 from agents.monitoring import analyze_trends, fetch_user_checkin_history, fetch_user_conversational_history
 from agents.narrative_agent import fetch_user_journal_history, synthesize_crisis_narrative
+from services.ai_provider import ai_provider, extract_json_from_text
 
 logger = logging.getLogger(__name__)
 
@@ -193,61 +194,60 @@ def generate_case_summary(
         "Generate a structured, non-hallucinated clinical summary according to your instructions. Respond in strict JSON."
     )
 
-    # Attempt Ollama LLM generation
-    try:
-        url = f"{ollama_host.rstrip('/')}/api/chat"
-        payload = {
-            "model": ollama_model,
-            "messages": [
-                {"role": "system", "content": SUMMARY_SYSTEM_PROMPT},
-                {"role": "user", "content": prompt}
-            ],
-            "stream": False,
-            "format": "json",
-            "options": {"temperature": 0.3, "top_p": 0.9, "num_predict": 750}
-        }
-        with httpx.Client(timeout=40.0) as client:
-            resp = client.post(url, json=payload)
-            if resp.status_code == 200:
-                raw_json = resp.json().get("message", {}).get("content", "")
-                parsed = json.loads(raw_json)
-                if parsed and "overview" in parsed:
-                    overview = str(parsed.get("overview", "")).strip()
-                    concerns = str(parsed.get("reported_concerns", "")).strip()
-                    patterns = str(parsed.get("recurring_patterns", "")).strip()
-                    changes = str(parsed.get("changes_over_time", "")).strip()
-                    history = str(parsed.get("historical_events", "")).strip()
-                    risks = str(parsed.get("risk_indicators", "")).strip()
-                    recs = str(parsed.get("recommended_review", "")).strip()
-                    title = str(parsed.get("title", f"Clinical Case Summary – Patient #{patient.id}")).strip()
+    # Attempt LLM generation via centralized AI provider (Ollama in local dev, Groq in cloud prod)
+    ai_resp = ai_provider.chat_completion(
+        messages=[{"role": "user", "content": prompt}],
+        system_prompt=SUMMARY_SYSTEM_PROMPT,
+        json_mode=True,
+        temperature=0.3,
+        override_model=ollama_model if (ollama_model and ollama_model != "llama3.2") else None,
+        override_base_url=ollama_host if (ollama_host and ollama_host != "http://127.0.0.1:11434") else None
+    )
 
-                    full_md = (
-                        f"# {title}\n\n"
-                        f"**Patient:** #{patient.id} ({patient.username}) | **Date Compiled:** {datetime.now(timezone.utc).strftime('%B %d, %Y')}\n\n"
-                        f"### 1. Case Overview\n{overview}\n\n"
-                        f"### 2. Reported Concerns\n{concerns}\n\n"
-                        f"### 3. Recurring Emotional Patterns\n{patterns}\n\n"
-                        f"### 4. Significant Changes Over Time\n{changes}\n\n"
-                        f"### 5. Relevant Historical Events\n{history}\n\n"
-                        f"### 6. Existing Risk Indicators & Safety Alerts\n{risks}\n\n"
-                        f"### 7. Recommended Areas for Human Review\n{recs}\n\n"
-                        f"---\n*Disclaimer: This summary is an AI-assisted synthesis of self-reported entries and does not constitute a formal psychiatric diagnosis.*"
-                    )
+    if not ai_resp.is_fallback:
+        parsed = ai_resp.parsed_json or extract_json_from_text(ai_resp.content)
+        if parsed and "overview" in parsed:
+            overview = str(parsed.get("overview", "")).strip()
+            concerns = str(parsed.get("reported_concerns", "")).strip()
+            patterns = str(parsed.get("recurring_patterns", "")).strip()
+            changes = str(parsed.get("changes_over_time", "")).strip()
+            history = str(parsed.get("historical_events", "")).strip()
+            risks = str(parsed.get("risk_indicators", "")).strip()
+            recs = str(parsed.get("recommended_review", "")).strip()
+            title = str(parsed.get("title", f"Clinical Case Summary – Patient #{patient.id}")).strip()
 
-                    return {
-                        "status": "success",
-                        "title": title,
-                        "overview": overview,
-                        "reported_concerns": concerns,
-                        "recurring_patterns": patterns,
-                        "changes_over_time": changes,
-                        "historical_events": history,
-                        "risk_indicators": risks,
-                        "recommended_review": recs,
-                        "full_content": full_md,
-                        "disclaimer": "This summary is an AI-assisted synthesis of self-reported entries and does not constitute a formal psychiatric diagnosis."
-                    }
-    except Exception as e:
-        logger.info(f"Ollama case summary generation bypassed or timed out ({e}). Using intelligent fallback.")
+            full_md = (
+                f"# {title}\n\n"
+                f"**Patient:** #{patient.id} ({patient.username}) | **Date Compiled:** {datetime.now(timezone.utc).strftime('%B %d, %Y')}\n\n"
+                f"### 1. Case Overview\n{overview}\n\n"
+                f"### 2. Reported Concerns\n{concerns}\n\n"
+                f"### 3. Recurring Emotional Patterns\n{patterns}\n\n"
+                f"### 4. Significant Changes Over Time\n{changes}\n\n"
+                f"### 5. Relevant Historical Events\n{history}\n\n"
+                f"### 6. Existing Risk Indicators & Safety Alerts\n{risks}\n\n"
+                f"### 7. Recommended Areas for Human Review\n{recs}\n\n"
+                f"---\n*Disclaimer: This summary is an AI-assisted synthesis of self-reported entries and does not constitute a formal psychiatric diagnosis.*"
+            )
 
-    return _generate_fallback_summary(patient, journals, checkins, conv_signals, alerts, trends)
+            return {
+                "status": "success",
+                "title": title,
+                "overview": overview,
+                "reported_concerns": concerns,
+                "recurring_patterns": patterns,
+                "changes_over_time": changes,
+                "historical_events": history,
+                "risk_indicators": risks,
+                "recommended_review": recs,
+                "full_content": full_md,
+                "disclaimer": "This summary is an AI-assisted synthesis of self-reported entries and does not constitute a formal psychiatric diagnosis.",
+                "is_ai_generated": True,
+                "ai_provider": ai_resp.provider,
+                "ai_model": ai_resp.model
+            }
+
+    logger.info(f"AI Provider ({ai_resp.provider}) used fallback: {ai_resp.fallback_reason}. Using intelligent fallback.")
+    fallback_res = _generate_fallback_summary(patient, journals, checkins, conv_signals, alerts, trends)
+    fallback_res["is_ai_generated"] = False
+    fallback_res["ai_provider"] = "fallback"
+    return fallback_res

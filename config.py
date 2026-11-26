@@ -64,13 +64,20 @@ class Config:
     REMEMBER_COOKIE_SAMESITE = 'Lax'
     REMEMBER_COOKIE_SECURE = bool(is_cloud_env)
 
-    # 5. Multi-Agent & Ollama Settings
-    OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'llama3.2')
-    configured_host = os.getenv('OLLAMA_HOST', '').strip()
+    # 5. Environment & Dual AI Provider Architecture (Ollama local / Groq cloud)
+    APP_ENV = os.getenv('APP_ENV', 'production' if is_cloud_env else 'development').strip().lower()
+    AI_PROVIDER = os.getenv('AI_PROVIDER', 'groq' if is_cloud_env else 'ollama').strip().lower()
 
-    if is_cloud_env and (not configured_host or '127.0.0.1' in configured_host or 'localhost' in configured_host or 'render-tyler-time-adsl' in configured_host):
-        OLLAMA_HOST = 'https://fence-ross-spotlight-remains.trycloudflare.com'
-    else:
-        OLLAMA_HOST = configured_host or 'http://127.0.0.1:11434'
+    # Local Ollama Settings (default: http://127.0.0.1:11434 with llama3.2)
+    OLLAMA_BASE_URL = (os.getenv('OLLAMA_BASE_URL') or os.getenv('OLLAMA_HOST') or 'http://127.0.0.1:11434').rstrip('/')
+    OLLAMA_HOST = OLLAMA_BASE_URL  # Backward compatibility
+    OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'llama3.2')
+    OLLAMA_TIMEOUT = float(os.getenv('OLLAMA_TIMEOUT', '30.0'))
+
+    # Hosted Groq Cloud Settings (production Render inference)
+    GROQ_API_KEY = os.getenv('GROQ_API_KEY', '').strip()
+    GROQ_MODEL = os.getenv('GROQ_MODEL', 'llama-3.3-70b-versatile')
+    GROQ_BASE_URL = (os.getenv('GROQ_BASE_URL') or 'https://api.groq.com/openai/v1').rstrip('/')
+    GROQ_TIMEOUT = float(os.getenv('GROQ_TIMEOUT', '20.0'))
 
     CHROMA_DB_PATH = os.path.join(basedir, "instance", "chroma_db")
