@@ -77,7 +77,8 @@ def orchestrator_synthesis_node(state: AgentState) -> Dict[str, Any]:
 
     return {
         "response": response,
-        "priority_override": state.get("priority_override", False)
+        "priority_override": state.get("priority_override", False),
+        "ai_metadata": state.get("ai_metadata", {})
     }
 
 # --- Conditional Edge Functions ---

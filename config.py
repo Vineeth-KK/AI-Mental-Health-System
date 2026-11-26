@@ -7,13 +7,13 @@ load_dotenv(os.path.join(basedir, '.env'))
 
 class Config:
     # 1. Secret Key Configuration (stable secret key, never purely random in memory)
-    SECRET_KEY = os.getenv('FLASK_SECRET_KEY') or 'careai-mental-health-system-stable-key-2026'
+    SECRET_KEY = (os.getenv('FLASK_SECRET_KEY') or os.getenv('SECRET_KEY') or 'careai-mental-health-system-stable-key-2026').strip().strip("'\"")
 
     # 2. Environment Detection
     is_cloud_env = bool(os.getenv('RENDER') or os.getenv('PORT') or os.getenv('DYNO'))
 
     # 3. Database Architecture (PostgreSQL in production, canonical SQLite locally)
-    db_url = os.getenv('DATABASE_URL')
+    db_url = (os.getenv('DATABASE_URL') or '').strip().strip("'\"")
     if db_url:
         # SQLAlchemy 1.4+ / 2.0+ requires 'postgresql://' instead of legacy 'postgres://'
         if db_url.startswith("postgres://"):
@@ -22,8 +22,8 @@ class Config:
         SQLALCHEMY_ENGINE_OPTIONS = {
             "pool_pre_ping": True,
             "pool_recycle": 300,
-            "pool_size": 10,
-            "max_overflow": 20
+            "pool_size": 5,
+            "max_overflow": 10
         }
     elif all([
         os.getenv('MYSQL_USER'),
@@ -75,9 +75,9 @@ class Config:
     OLLAMA_TIMEOUT = float(os.getenv('OLLAMA_TIMEOUT', '30.0'))
 
     # Hosted Groq Cloud Settings (production Render inference)
-    GROQ_API_KEY = os.getenv('GROQ_API_KEY', '').strip()
-    GROQ_MODEL = os.getenv('GROQ_MODEL', 'llama-3.3-70b-versatile')
+    GROQ_API_KEY = os.getenv('GROQ_API_KEY', '').strip().strip("'\"")
+    GROQ_MODEL = os.getenv('GROQ_MODEL', 'llama-3.1-8b-instant').strip()
     GROQ_BASE_URL = (os.getenv('GROQ_BASE_URL') or 'https://api.groq.com/openai/v1').rstrip('/')
-    GROQ_TIMEOUT = float(os.getenv('GROQ_TIMEOUT', '20.0'))
+    GROQ_TIMEOUT = float(os.getenv('GROQ_TIMEOUT', '30.0'))
 
     CHROMA_DB_PATH = os.path.join(basedir, "instance", "chroma_db")

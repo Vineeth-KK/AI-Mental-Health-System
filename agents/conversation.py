@@ -55,8 +55,9 @@ def generate_llm_response(
     rag_context: Optional[List[Dict[str, Any]]] = None,
     user_name: Optional[str] = None,
     ollama_model: Optional[str] = None,
-    ollama_host: Optional[str] = None
-) -> str:
+    ollama_host: Optional[str] = None,
+    return_metadata: bool = False
+):
     """Generates an empathetic, context-aware response via local Ollama LLM, with versatile multi-turn fallback."""
     # Resolve model and host dynamically from Flask app config or environment
     try:
@@ -105,13 +106,23 @@ def generate_llm_response(
         override_base_url=ollama_host if (ollama_host and ollama_host != "http://127.0.0.1:11434") else None
     )
 
+    meta = {
+        "provider": ai_resp.provider,
+        "model": ai_resp.model,
+        "is_llm": not ai_resp.is_fallback,
+        "is_fallback": ai_resp.is_fallback,
+        "fallback_reason": ai_resp.fallback_reason if ai_resp.is_fallback else None,
+        "latency_ms": ai_resp.latency_ms
+    }
+
     if not ai_resp.is_fallback and ai_resp.content:
         logger.info(f"Generated response via {ai_resp.provider} ({ai_resp.model}) for {len(messages)} messages ({ai_resp.latency_ms:.1f}ms).")
-        return ai_resp.content
+        return (ai_resp.content, meta) if return_metadata else ai_resp.content
 
     logger.info(f"AI Provider ({ai_resp.provider}) used fallback: {ai_resp.fallback_reason}. Using intelligent reasoning engine.")
     # Contextual, intent-aware dynamic multi-turn engine
-    return _generate_intelligent_fallback(messages, rag_context, user_name)
+    fallback_content = _generate_intelligent_fallback(messages, rag_context, user_name)
+    return (fallback_content, meta) if return_metadata else fallback_content
 
 
 def _generate_intelligent_fallback(
@@ -883,7 +894,7 @@ def _generate_intelligent_fallback(
         return (
             f"Here is a clear perspective on {topic_phrase}{name_clause}:\n\n"
             f"When looking at {topic_phrase}, the most practical approach is to break down the primary mechanisms step-by-step. "
-            "Focusing on the foundational factors allows you to see the bigger picture and apply it with confidence.{rag_snippet_str}\n\n"
+            f"Focusing on the foundational factors allows you to see the bigger picture and apply it with confidence.{rag_snippet_str}\n\n"
             f"What specific aspect of {topic_phrase} would you like to explore further together?"
         )
 
@@ -892,7 +903,7 @@ def _generate_intelligent_fallback(
     subject = f"regarding {words[0]}" if words else ""
     return (
         f"Thank you for sharing that{name_clause}. I am following your thoughts {subject} closely. "
-        "We can break this down in more detail, look at practical next steps, or talk through whatever is most helpful for you right now.{rag_snippet_str}\n\n"
+        f"We can break this down in more detail, look at practical next steps, or talk through whatever is most helpful for you right now.{rag_snippet_str}\n\n"
         "Where would you like to take our conversation next?"
     )
 
@@ -903,9 +914,10 @@ def conversation_agent_node(state: AgentState) -> Dict[str, Any]:
     rag_context = state.get("rag_context", [])
     user_name = state.get("user_name", "")
 
-    response = generate_llm_response(
+    response, meta = generate_llm_response(
         messages=messages,
         rag_context=rag_context,
-        user_name=user_name
+        user_name=user_name,
+        return_metadata=True
     )
-    return {"response": response}
+    return {"response": response, "ai_metadata": meta}

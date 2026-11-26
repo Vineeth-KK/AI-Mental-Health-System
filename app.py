@@ -20,6 +20,12 @@ def create_app(config_class=Config):
     login_manager.init_app(app)
     csrf.init_app(app)
 
+    # Configure ProxyFix for reverse proxy environments (e.g. Render HTTPS termination)
+    if app.config.get("is_cloud_env") or os.getenv("RENDER") or os.getenv("BEHIND_PROXY", "").lower() == "true":
+        from werkzeug.middleware.proxy_fix import ProxyFix
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
+        logger.info("ProxyFix middleware enabled for cloud reverse proxy.")
+
     # Root route redirect
     @app.route("/")
     def index():
@@ -30,6 +36,7 @@ def create_app(config_class=Config):
     # Production health-check endpoint with live database connection diagnostic
     @app.route("/health", methods=["GET"])
     def health():
+        from flask import request
         db_status = "connected"
         db_type = "unknown"
         try:
@@ -46,7 +53,8 @@ def create_app(config_class=Config):
             logger.error(f"Health check database ping failed: {e}")
 
         from services.ai_provider import ai_provider
-        ai_status = ai_provider.get_status()
+        check_live = request.args.get("check_provider") in ["1", "true"]
+        ai_status = ai_provider.get_status(check_live=check_live)
 
         return jsonify({
             "status": "healthy" if db_status == "connected" else "degraded",
@@ -59,7 +67,7 @@ def create_app(config_class=Config):
             "ai_provider": ai_status,
             "multi_agent_system": "operational",
             "rag_service": "active",
-            "version": "v2.5-dual-env"
+            "version": "v2.6-prod-ready"
         }), 200
 
     # Import and register blueprints

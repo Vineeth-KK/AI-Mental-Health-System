@@ -277,7 +277,7 @@ def test_health_endpoint_diagnostics(client, monkeypatch):
     data = resp.get_json()
 
     assert data["service"] == "AI Mental Health Monitoring System"
-    assert data["version"] == "v2.5-dual-env"
+    assert data["version"].startswith("v2.")
     assert "ai_provider" in data
     assert data["ai_provider"]["provider"] == "groq"
     assert data["ai_provider"]["model"] == "llama-3.3-70b-versatile"

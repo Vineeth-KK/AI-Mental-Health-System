@@ -180,9 +180,15 @@ def chat():
         db.session.rollback()
         logger.error(f"Error persisting assistant chat message: {e}", exc_info=True)
 
+    ai_meta = agent_result.get("ai_metadata") or {}
     return jsonify({
         "response": reply_content,
         "priority_override": is_safety_override,
+        "ai_provider": ai_meta.get("provider", "unknown"),
+        "ai_model": ai_meta.get("model", "unknown"),
+        "is_llm": ai_meta.get("is_llm", False),
+        "is_fallback": ai_meta.get("is_fallback", False),
+        "fallback_reason": ai_meta.get("fallback_reason"),
         "safety_alert": agent_result.get("safety_alert") or {},
         "recommendations": agent_result.get("recommendations") or [],
         "rag_context": [

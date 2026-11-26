@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 # Default model definitions
 DEFAULT_OLLAMA_MODEL = "llama3.2"
 DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434"
-DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
+DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant"
 DEFAULT_GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 
 
@@ -123,12 +123,12 @@ class AIProviderService:
     @staticmethod
     def get_groq_config() -> Tuple[str, str, str]:
         """Resolves (api_key, model, base_url) for Groq."""
-        api_key = os.getenv("GROQ_API_KEY", "").strip()
-        model = os.getenv("GROQ_MODEL") or DEFAULT_GROQ_MODEL
+        api_key = os.getenv("GROQ_API_KEY", "").strip().strip("'\"")
+        model = (os.getenv("GROQ_MODEL") or DEFAULT_GROQ_MODEL).strip()
         base_url = (os.getenv("GROQ_BASE_URL") or DEFAULT_GROQ_BASE_URL).rstrip("/")
         return api_key, model, base_url
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self, check_live: bool = False) -> Dict[str, Any]:
         """Returns safe provider diagnostics for the health check without exposing keys."""
         provider = self.get_active_provider_name()
         app_env = os.getenv("APP_ENV", "development" if provider == "ollama" else "production")
@@ -137,15 +137,28 @@ class AIProviderService:
             api_key, model, base_url = self.get_groq_config()
             is_configured = bool(api_key and len(api_key) > 8)
             masked_key = f"{api_key[:4]}...{api_key[-4:]}" if is_configured else "not_configured"
-            return {
+            status_data = {
                 "app_env": app_env,
                 "provider": "groq",
                 "model": model,
                 "configured": is_configured,
                 "api_key_status": "present" if is_configured else "missing",
                 "key_preview": masked_key,
-                "endpoint": base_url
+                "endpoint": base_url,
+                "live_connectivity": "not_checked"
             }
+            if check_live and is_configured:
+                try:
+                    test_headers = {"Authorization": f"Bearer {api_key}"}
+                    with httpx.Client(timeout=5.0) as client:
+                        resp = client.get(f"{base_url}/models", headers=test_headers)
+                        if resp.status_code == 200:
+                            status_data["live_connectivity"] = "connected"
+                        else:
+                            status_data["live_connectivity"] = f"http_{resp.status_code}"
+                except Exception as ex:
+                    status_data["live_connectivity"] = f"error_{type(ex).__name__}"
+            return status_data
         else:
             base_url, model = self.get_ollama_config()
             return {
