@@ -34,12 +34,13 @@ def client(app):
 
 
 def test_normalize_postgres_url():
-    """Verifies that PostgreSQL URLs with legacy prefixes or quotes are properly normalized."""
-    assert normalize_postgres_url("postgres://user:pass@host/db") == "postgresql://user:pass@host/db"
-    assert normalize_postgres_url("postgresql://user:pass@host/db") == "postgresql://user:pass@host/db"
-    assert normalize_postgres_url("'postgres://user:pass@host/db'") == "postgresql://user:pass@host/db"
-    assert normalize_postgres_url('"postgres://user:pass@host/db"') == "postgresql://user:pass@host/db"
-    assert normalize_postgres_url("  postgresql://user:pass@host/db  ") == "postgresql://user:pass@host/db"
+    """Verifies that PostgreSQL URLs with legacy prefixes or quotes are properly normalized to postgresql+psycopg2://."""
+    assert normalize_postgres_url("postgres://user:pass@host/db") == "postgresql+psycopg2://user:pass@host/db"
+    assert normalize_postgres_url("postgresql://user:pass@host/db") == "postgresql+psycopg2://user:pass@host/db"
+    assert normalize_postgres_url("'postgres://user:pass@host/db'") == "postgresql+psycopg2://user:pass@host/db"
+    assert normalize_postgres_url('"postgres://user:pass@host/db"') == "postgresql+psycopg2://user:pass@host/db"
+    assert normalize_postgres_url("  postgresql://user:pass@host/db  ") == "postgresql+psycopg2://user:pass@host/db"
+    assert normalize_postgres_url("postgresql+psycopg://user:pass@host/db") == "postgresql+psycopg://user:pass@host/db"
 
 
 def test_fallback_template_formatting_no_leakage():

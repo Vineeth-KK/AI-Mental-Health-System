@@ -15,9 +15,13 @@ class Config:
     # 3. Database Architecture (PostgreSQL in production, canonical SQLite locally)
     db_url = (os.getenv('DATABASE_URL') or '').strip().strip("'\"")
     if db_url:
-        # SQLAlchemy 1.4+ / 2.0+ requires 'postgresql://' instead of legacy 'postgres://'
+        # SQLAlchemy 2.1+ defaults 'postgresql://' to psycopg (v3).
+        # Normalize legacy 'postgres://' or driverless 'postgresql://' to 'postgresql+psycopg2://'
+        # to guarantee compatibility with psycopg2-binary while psycopg 3 is also supported.
         if db_url.startswith("postgres://"):
-            db_url = db_url.replace("postgres://", "postgresql://", 1)
+            db_url = db_url.replace("postgres://", "postgresql+psycopg2://", 1)
+        elif db_url.startswith("postgresql://"):
+            db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
         SQLALCHEMY_DATABASE_URI = db_url
         SQLALCHEMY_ENGINE_OPTIONS = {
             "pool_pre_ping": True,

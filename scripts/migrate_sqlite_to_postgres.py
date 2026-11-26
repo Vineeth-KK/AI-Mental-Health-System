@@ -39,12 +39,14 @@ TABLE_ORDER = [
 
 
 def normalize_postgres_url(url: str) -> str:
-    """Ensures PostgreSQL URLs use postgresql:// driver prefix."""
+    """Ensures PostgreSQL URLs use postgresql+psycopg2:// driver prefix for reliability."""
     if not url:
         return ""
     clean_url = url.strip().strip("'\"")
     if clean_url.startswith("postgres://"):
-        return clean_url.replace("postgres://", "postgresql://", 1)
+        return clean_url.replace("postgres://", "postgresql+psycopg2://", 1)
+    elif clean_url.startswith("postgresql://"):
+        return clean_url.replace("postgresql://", "postgresql+psycopg2://", 1)
     return clean_url
 
 
