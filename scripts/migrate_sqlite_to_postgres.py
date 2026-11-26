@@ -115,8 +115,9 @@ def migrate_database(sqlite_path: str, pg_url: str, dry_run: bool = False) -> bo
             except Exception as e:
                 logger.warning(f"Could not read existing IDs for {table_name}: {e}")
 
-            # Inspect columns in target table
-            pg_columns = {col["name"] for col in pg_inspector.get_columns(table_name)}
+            # Inspect columns and types in target table
+            pg_col_types = {col["name"]: str(col["type"]).upper() for col in pg_inspector.get_columns(table_name)}
+            pg_columns = set(pg_col_types.keys())
 
             inserted_count = 0
             skipped_count = 0
@@ -134,6 +135,20 @@ def migrate_database(sqlite_path: str, pg_url: str, dry_run: bool = False) -> bo
 
                 if not filtered_data:
                     continue
+
+                # Normalize types for PostgreSQL compatibility (e.g. SQLite stores booleans as 0/1)
+                for k, v in list(filtered_data.items()):
+                    c_type = pg_col_types.get(k, "")
+                    if "BOOL" in c_type and v is not None:
+                        if isinstance(v, (int, float)):
+                            filtered_data[k] = bool(v)
+                        elif isinstance(v, str):
+                            filtered_data[k] = v.strip().lower() in ("1", "true", "t", "yes")
+                    elif ("TIMESTAMP" in c_type or "DATETIME" in c_type) and isinstance(v, str) and v:
+                        try:
+                            filtered_data[k] = datetime.fromisoformat(v)
+                        except Exception:
+                            pass
 
                 col_names = list(filtered_data.keys())
                 col_placeholders = [f":{col}" for col in col_names]
