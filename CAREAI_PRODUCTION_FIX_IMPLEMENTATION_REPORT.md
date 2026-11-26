@@ -187,7 +187,7 @@ python scripts/migrate_sqlite_to_postgres.py --sqlite-path instance/mhapp.db --p
 ## 11. Git Commit & Push Status
 
 All changes have been staged, verified, committed to `master`, and pushed to GitHub:
-- **Commit:** `4f32c91`
+- **Commit:** `6b1f08f`
 - **Commit Subject:** `fix(prod): implement PostgreSQL architecture, Groq 8B model, ProxyFix, and memory fixes`
 - **Rollback Point:** `careai-before-dual-environment` (`151163f`) remains intact.
 
